@@ -1,0 +1,195 @@
+%PDF-1.4
+%‚„œ”
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [6 0 R 8 0 R] /Count 2 >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>
+endobj
+5 0 obj
+<< /Length 7943 >>
+stream
+BT /F1 8.0 Tf 0.45 g 1 0 0 1 56.0 770.0 Tm (Business Checking Statement, June 2026) Tj ET 0 g
+BT /F1 8.0 Tf 0.45 g 1 0 0 1 496.0 770.0 Tm (Page 1) Tj ET 0 g
+0.50 w 0.80 G 56.0 764.0 m 556.0 764.0 l S 0 G
+BT /F1 7.0 Tf 0.45 g 1 0 0 1 56.0 40.0 Tm (Brookhaven Financial. Fictional sample generated for the AI Governance Center prototype; every name, account and amount is invented.) Tj ET 0 g
+BT /F2 16.0 Tf 1 0 0 1 56.0 720.0 Tm (Business Checking Statement) Tj ET
+BT /F1 9.5 Tf 0.45 g 1 0 0 1 56.0 700.0 Tm (Statement period 06/01/2026 to 06/30/2026. Harbor Point Logistics LLC, account ending 4471.) Tj ET 0 g
+BT /F1 9.5 Tf 0.45 g 1 0 0 1 56.0 688.0 Tm (Questions: 1-800-555-0142.) Tj ET 0 g
+BT /F1 10.0 Tf 1 0 0 1 60.0 668.0 Tm (Beginning balance) Tj ET
+BT /F1 10.0 Tf 1 0 0 1 210.0 668.0 Tm ($184,220.15) Tj ET
+0.50 w 0.80 G 56.0 658.0 m 556.0 658.0 l S 0 G
+BT /F1 10.0 Tf 1 0 0 1 60.0 646.0 Tm (Deposits and credits) Tj ET
+BT /F1 10.0 Tf 1 0 0 1 210.0 646.0 Tm ($96,410.00 \(7 items\)) Tj ET
+0.50 w 0.80 G 56.0 636.0 m 556.0 636.0 l S 0 G
+BT /F1 10.0 Tf 1 0 0 1 60.0 624.0 Tm (Withdrawals and debits) Tj ET
+BT /F1 10.0 Tf 1 0 0 1 210.0 624.0 Tm ($88,975.42 \(19 items\)) Tj ET
+0.50 w 0.80 G 56.0 614.0 m 556.0 614.0 l S 0 G
+BT /F1 10.0 Tf 1 0 0 1 60.0 602.0 Tm (Fees) Tj ET
+BT /F1 10.0 Tf 1 0 0 1 210.0 602.0 Tm ($45.00) Tj ET
+0.50 w 0.80 G 56.0 592.0 m 556.0 592.0 l S 0 G
+BT /F1 10.0 Tf 1 0 0 1 60.0 580.0 Tm (Ending balance) Tj ET
+BT /F1 10.0 Tf 1 0 0 1 210.0 580.0 Tm ($191,609.73) Tj ET
+0.50 w 0.80 G 56.0 570.0 m 556.0 570.0 l S 0 G
+0.94 g 56.0 544.5 500.0 21.5 re f 0 g
+BT /F2 9.5 Tf 1 0 0 1 60.0 552.5 Tm (Date) Tj ET
+BT /F2 9.5 Tf 1 0 0 1 120.0 552.5 Tm (Description) Tj ET
+BT /F2 9.5 Tf 1 0 0 1 380.0 552.5 Tm (Amount) Tj ET
+BT /F2 9.5 Tf 1 0 0 1 470.0 552.5 Tm (Balance) Tj ET
+0.50 w 0.80 G 56.0 542.5 m 556.0 542.5 l S 0 G
+BT /F1 9.5 Tf 1 0 0 1 60.0 531.0 Tm (06/01) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 120.0 531.0 Tm (Deposit, mobile check) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 380.0 531.0 Tm (12,400.00) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 470.0 531.0 Tm (196,620.15) Tj ET
+0.50 w 0.80 G 56.0 521.0 m 556.0 521.0 l S 0 G
+BT /F1 9.5 Tf 1 0 0 1 60.0 509.5 Tm (06/02) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 120.0 509.5 Tm (ACH debit, Piedmont Fuel Co) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 380.0 509.5 Tm (-4,312.80) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 470.0 509.5 Tm (192,307.35) Tj ET
+0.50 w 0.80 G 56.0 499.5 m 556.0 499.5 l S 0 G
+BT /F1 9.5 Tf 1 0 0 1 60.0 488.0 Tm (06/03) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 120.0 488.0 Tm (Payroll, ACH batch 0603) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 380.0 488.0 Tm (-31,280.00) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 470.0 488.0 Tm (161,027.35) Tj ET
+0.50 w 0.80 G 56.0 478.0 m 556.0 478.0 l S 0 G
+BT /F1 9.5 Tf 1 0 0 1 60.0 466.5 Tm (06/05) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 120.0 466.5 Tm (Wire in, Cedar Ridge Foods) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 380.0 466.5 Tm (28,600.00) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 470.0 466.5 Tm (189,627.35) Tj ET
+0.50 w 0.80 G 56.0 456.5 m 556.0 456.5 l S 0 G
+BT /F1 9.5 Tf 1 0 0 1 60.0 445.0 Tm (06/06) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 120.0 445.0 Tm (Check 2041, Gastonia Property Mgmt) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 380.0 445.0 Tm (-9,800.00) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 470.0 445.0 Tm (179,827.35) Tj ET
+0.50 w 0.80 G 56.0 435.0 m 556.0 435.0 l S 0 G
+BT /F1 9.5 Tf 1 0 0 1 60.0 423.5 Tm (06/09) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 120.0 423.5 Tm (ACH debit, Carolina Tire) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 380.0 423.5 Tm (-1,146.20) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 470.0 423.5 Tm (178,681.15) Tj ET
+0.50 w 0.80 G 56.0 413.5 m 556.0 413.5 l S 0 G
+BT /F1 9.5 Tf 1 0 0 1 60.0 402.0 Tm (06/10) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 120.0 402.0 Tm (Deposit, branch) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 380.0 402.0 Tm (8,750.00) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 470.0 402.0 Tm (187,431.15) Tj ET
+0.50 w 0.80 G 56.0 392.0 m 556.0 392.0 l S 0 G
+BT /F1 9.5 Tf 1 0 0 1 60.0 380.5 Tm (06/11) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 120.0 380.5 Tm (Card purchase, Office Depot) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 380.0 380.5 Tm (-312.44) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 470.0 380.5 Tm (187,118.71) Tj ET
+0.50 w 0.80 G 56.0 370.5 m 556.0 370.5 l S 0 G
+BT /F1 9.5 Tf 1 0 0 1 60.0 359.0 Tm (06/12) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 120.0 359.0 Tm (ACH debit, Duke Energy) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 380.0 359.0 Tm (-2,208.61) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 470.0 359.0 Tm (184,910.10) Tj ET
+0.50 w 0.80 G 56.0 349.0 m 556.0 349.0 l S 0 G
+BT /F1 9.5 Tf 1 0 0 1 60.0 337.5 Tm (06/13) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 120.0 337.5 Tm (Wire in, Bluewater Marine Supply) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 380.0 337.5 Tm (15,900.00) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 470.0 337.5 Tm (200,810.10) Tj ET
+0.50 w 0.80 G 56.0 327.5 m 556.0 327.5 l S 0 G
+BT /F1 9.5 Tf 1 0 0 1 60.0 316.0 Tm (06/16) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 120.0 316.0 Tm (Check 2042, Ironbridge Fabrication) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 380.0 316.0 Tm (-6,450.00) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 470.0 316.0 Tm (194,360.10) Tj ET
+0.50 w 0.80 G 56.0 306.0 m 556.0 306.0 l S 0 G
+BT /F1 9.5 Tf 1 0 0 1 60.0 294.5 Tm (06/17) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 120.0 294.5 Tm (Payroll, ACH batch 0617) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 380.0 294.5 Tm (-31,280.00) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 470.0 294.5 Tm (163,080.10) Tj ET
+0.50 w 0.80 G 56.0 284.5 m 556.0 284.5 l S 0 G
+BT /F1 9.5 Tf 1 0 0 1 60.0 273.0 Tm (06/18) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 120.0 273.0 Tm (Deposit, mobile check) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 380.0 273.0 Tm (6,200.00) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 470.0 273.0 Tm (169,280.10) Tj ET
+0.50 w 0.80 G 56.0 263.0 m 556.0 263.0 l S 0 G
+BT /F1 9.5 Tf 1 0 0 1 60.0 251.5 Tm (06/19) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 120.0 251.5 Tm (Wire fee) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 380.0 251.5 Tm (-30.00) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 470.0 251.5 Tm (169,250.10) Tj ET
+0.50 w 0.80 G 56.0 241.5 m 556.0 241.5 l S 0 G
+BT /F1 9.5 Tf 1 0 0 1 60.0 230.0 Tm (06/20) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 120.0 230.0 Tm (ACH debit, Piedmont Fuel Co) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 380.0 230.0 Tm (-4,018.37) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 470.0 230.0 Tm (165,231.73) Tj ET
+0.50 w 0.80 G 56.0 220.0 m 556.0 220.0 l S 0 G
+BT /F1 9.5 Tf 1 0 0 1 60.0 208.5 Tm (06/23) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 120.0 208.5 Tm (Wire in, Summit Family Practice) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 380.0 208.5 Tm (14,300.00) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 470.0 208.5 Tm (179,531.73) Tj ET
+0.50 w 0.80 G 56.0 198.5 m 556.0 198.5 l S 0 G
+BT /F1 9.5 Tf 1 0 0 1 60.0 187.0 Tm (06/24) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 120.0 187.0 Tm (Card purchase, Lowe's) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 380.0 187.0 Tm (-887.00) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 470.0 187.0 Tm (178,644.73) Tj ET
+0.50 w 0.80 G 56.0 177.0 m 556.0 177.0 l S 0 G
+BT /F1 9.5 Tf 1 0 0 1 60.0 165.5 Tm (06/25) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 120.0 165.5 Tm (ACH debit, Charlotte Water) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 380.0 165.5 Tm (-412.00) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 470.0 165.5 Tm (178,232.73) Tj ET
+0.50 w 0.80 G 56.0 155.5 m 556.0 155.5 l S 0 G
+BT /F1 9.5 Tf 1 0 0 1 60.0 144.0 Tm (06/26) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 120.0 144.0 Tm (Deposit, branch) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 380.0 144.0 Tm (10,260.00) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 470.0 144.0 Tm (188,492.73) Tj ET
+0.50 w 0.80 G 56.0 134.0 m 556.0 134.0 l S 0 G
+BT /F1 9.5 Tf 1 0 0 1 60.0 122.5 Tm (06/27) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 120.0 122.5 Tm (Check 2043, Maple Street Bakery) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 380.0 122.5 Tm (-1,250.00) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 470.0 122.5 Tm (187,242.73) Tj ET
+0.50 w 0.80 G 56.0 112.5 m 556.0 112.5 l S 0 G
+BT /F1 9.5 Tf 1 0 0 1 60.0 101.0 Tm (06/30) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 120.0 101.0 Tm (Loan payment, note 88-2231) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 380.0 101.0 Tm (-4,352.00) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 470.0 101.0 Tm (182,890.73) Tj ET
+0.50 w 0.80 G 56.0 91.0 m 556.0 91.0 l S 0 G
+BT /F1 9.5 Tf 1 0 0 1 60.0 79.5 Tm (06/30) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 120.0 79.5 Tm (Monthly maintenance fee) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 380.0 79.5 Tm (-15.00) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 470.0 79.5 Tm (182,875.73) Tj ET
+0.50 w 0.80 G 56.0 69.5 m 556.0 69.5 l S 0 G
+endstream
+endobj
+6 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 5 0 R /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> >>
+endobj
+7 0 obj
+<< /Length 930 >>
+stream
+BT /F1 8.0 Tf 0.45 g 1 0 0 1 56.0 770.0 Tm (Business Checking Statement, June 2026) Tj ET 0 g
+BT /F1 8.0 Tf 0.45 g 1 0 0 1 496.0 770.0 Tm (Page 2) Tj ET 0 g
+0.50 w 0.80 G 56.0 764.0 m 556.0 764.0 l S 0 G
+BT /F1 7.0 Tf 0.45 g 1 0 0 1 56.0 40.0 Tm (Brookhaven Financial. Fictional sample generated for the AI Governance Center prototype; every name, account and amount is invented.) Tj ET 0 g
+BT /F1 9.5 Tf 1 0 0 1 60.0 728.5 Tm (06/30) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 120.0 728.5 Tm (Interest credit) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 380.0 728.5 Tm (8,734.00) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 470.0 728.5 Tm (191,609.73) Tj ET
+0.50 w 0.80 G 56.0 718.5 m 556.0 718.5 l S 0 G
+BT /F1 9.5 Tf 1 0 0 1 56.0 699.0 Tm (Balances shown are ledger balances at the end of each day. Interest is credited on the last business) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 56.0 685.5 Tm (day of the statement period. Report an error within 60 days of the statement date.) Tj ET
+endstream
+endobj
+8 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 7 0 R /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> >>
+endobj
+xref
+0 9
+0000000000 65535 f 
+0000000015 00000 n 
+0000000064 00000 n 
+0000000127 00000 n 
+0000000224 00000 n 
+0000000326 00000 n 
+0000008321 00000 n 
+0000008457 00000 n 
+0000009438 00000 n 
+trailer
+<< /Size 9 /Root 1 0 R /Info << /Title (Business Checking Statement, June 2026) /Producer (AI Governance Center prototype) >> >>
+startxref
+9574
+%%EOF

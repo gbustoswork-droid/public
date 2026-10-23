@@ -1,0 +1,105 @@
+%PDF-1.4
+%‚„œ”
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [6 0 R 8 0 R] /Count 2 >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>
+endobj
+5 0 obj
+<< /Length 4678 >>
+stream
+BT /F1 8.0 Tf 0.45 g 1 0 0 1 56.0 770.0 Tm (Master Services Agreement \(Draft v3\)) Tj ET 0 g
+BT /F1 8.0 Tf 0.45 g 1 0 0 1 496.0 770.0 Tm (Page 1) Tj ET 0 g
+0.50 w 0.80 G 56.0 764.0 m 556.0 764.0 l S 0 G
+BT /F1 7.0 Tf 0.45 g 1 0 0 1 56.0 40.0 Tm (Brookhaven Financial. Fictional sample generated for the AI Governance Center prototype; every name, account and amount is invented.) Tj ET 0 g
+BT /F2 16.0 Tf 1 0 0 1 56.0 720.0 Tm (Master Services Agreement) Tj ET
+BT /F1 9.5 Tf 0.45 g 1 0 0 1 56.0 700.0 Tm (Draft v3, 06/08/2026. Between Brookhaven Financial \(the Bank\) and Northwind Analytics LLC \(the) Tj ET 0 g
+BT /F1 9.5 Tf 0.45 g 1 0 0 1 56.0 688.0 Tm (Supplier\). Confidential; for negotiation only.) Tj ET 0 g
+BT /F2 10.5 Tf 1 0 0 1 56.0 665.5 Tm (1. Services) Tj ET
+BT /F1 10.5 Tf 1 0 0 1 56.0 646.0 Tm (The Supplier will provide the data analytics services described in each Statement of Work) Tj ET
+BT /F1 10.5 Tf 1 0 0 1 56.0 631.5 Tm (signed under this Agreement. Each Statement of Work names the deliverables, the schedule,) Tj ET
+BT /F1 10.5 Tf 1 0 0 1 56.0 617.0 Tm (the fees and the acceptance criteria, and forms part of this Agreement once signed by both) Tj ET
+BT /F1 10.5 Tf 1 0 0 1 56.0 602.5 Tm (parties.) Tj ET
+BT /F2 10.5 Tf 1 0 0 1 56.0 583.0 Tm (2. Term) Tj ET
+BT /F1 10.5 Tf 1 0 0 1 56.0 563.5 Tm (This Agreement begins on the Effective Date and continues for three years. It renews for) Tj ET
+BT /F1 10.5 Tf 1 0 0 1 56.0 549.0 Tm (successive one-year periods unless either party gives written notice of non-renewal at least) Tj ET
+BT /F1 10.5 Tf 1 0 0 1 56.0 534.5 Tm (ninety days before the end of the current period.) Tj ET
+BT /F2 10.5 Tf 1 0 0 1 56.0 515.0 Tm (3. Fees and invoicing) Tj ET
+BT /F1 10.5 Tf 1 0 0 1 56.0 495.5 Tm (Fees are set out in each Statement of Work. The Supplier invoices monthly in arrears and the) Tj ET
+BT /F1 10.5 Tf 1 0 0 1 56.0 481.0 Tm (Bank pays undisputed amounts within forty-five days of receipt. Disputed amounts are raised) Tj ET
+BT /F1 10.5 Tf 1 0 0 1 56.0 466.5 Tm (in writing within fifteen days of the invoice date.) Tj ET
+BT /F2 10.5 Tf 1 0 0 1 56.0 447.0 Tm (4. Confidentiality) Tj ET
+BT /F1 10.5 Tf 1 0 0 1 56.0 427.5 Tm (Each party keeps the other party's Confidential Information in confidence, uses it only to) Tj ET
+BT /F1 10.5 Tf 1 0 0 1 56.0 413.0 Tm (perform this Agreement and discloses it only to personnel who need it and are bound by) Tj ET
+BT /F1 10.5 Tf 1 0 0 1 56.0 398.5 Tm (written obligations at least as protective as these. The obligations survive termination for) Tj ET
+BT /F1 10.5 Tf 1 0 0 1 56.0 384.0 Tm (five years, and for trade secrets for as long as they remain trade secrets.) Tj ET
+BT /F2 10.5 Tf 1 0 0 1 56.0 364.5 Tm (5. Data protection) Tj ET
+BT /F1 10.5 Tf 1 0 0 1 56.0 345.0 Tm (The Supplier processes Bank data only on the Bank's documented instructions, keeps it in the) Tj ET
+BT /F1 10.5 Tf 1 0 0 1 56.0 330.5 Tm (United States, applies the security measures in Schedule B, notifies the Bank of any) Tj ET
+BT /F1 10.5 Tf 1 0 0 1 56.0 316.0 Tm (security incident within twenty-four hours of becoming aware of it, and returns or destroys) Tj ET
+BT /F1 10.5 Tf 1 0 0 1 56.0 301.5 Tm (the data at the end of the Services. The Supplier will not use Bank data to train any model) Tj ET
+BT /F1 10.5 Tf 1 0 0 1 56.0 287.0 Tm (that serves another customer.) Tj ET
+BT /F2 10.5 Tf 1 0 0 1 56.0 267.5 Tm (6. Audit) Tj ET
+BT /F1 10.5 Tf 1 0 0 1 56.0 248.0 Tm (The Bank, its regulators and its external auditors may audit the Supplier's compliance with) Tj ET
+BT /F1 10.5 Tf 1 0 0 1 56.0 233.5 Tm (this Agreement on thirty days' notice, no more than once a year unless an incident or a) Tj ET
+BT /F1 10.5 Tf 1 0 0 1 56.0 219.0 Tm (regulatory request requires otherwise.) Tj ET
+BT /F2 10.5 Tf 1 0 0 1 56.0 199.5 Tm (7. Termination) Tj ET
+BT /F1 10.5 Tf 1 0 0 1 56.0 180.0 Tm (Either party may terminate this Agreement for a material breach that remains uncured thirty) Tj ET
+BT /F1 10.5 Tf 1 0 0 1 56.0 165.5 Tm (days after written notice. The Bank may terminate any Statement of Work for convenience on) Tj ET
+BT /F1 10.5 Tf 1 0 0 1 56.0 151.0 Tm (sixty days' notice and pays for work performed to the termination date.) Tj ET
+BT /F2 10.5 Tf 1 0 0 1 56.0 131.5 Tm (8. Liability) Tj ET
+BT /F1 10.5 Tf 1 0 0 1 56.0 112.0 Tm (Neither party is liable for indirect or consequential loss. Each party's total liability) Tj ET
+BT /F1 10.5 Tf 1 0 0 1 56.0 97.5 Tm (under this Agreement is limited to the fees paid in the twelve months before the claim,) Tj ET
+BT /F1 10.5 Tf 1 0 0 1 56.0 83.0 Tm (except for breaches of sections 4 and 5, which are limited to three times that amount.) Tj ET
+endstream
+endobj
+6 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 5 0 R /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> >>
+endobj
+7 0 obj
+<< /Length 1333 >>
+stream
+BT /F1 8.0 Tf 0.45 g 1 0 0 1 56.0 770.0 Tm (Master Services Agreement \(Draft v3\)) Tj ET 0 g
+BT /F1 8.0 Tf 0.45 g 1 0 0 1 496.0 770.0 Tm (Page 2) Tj ET 0 g
+0.50 w 0.80 G 56.0 764.0 m 556.0 764.0 l S 0 G
+BT /F1 7.0 Tf 0.45 g 1 0 0 1 56.0 40.0 Tm (Brookhaven Financial. Fictional sample generated for the AI Governance Center prototype; every name, account and amount is invented.) Tj ET 0 g
+BT /F2 10.5 Tf 1 0 0 1 56.0 725.5 Tm (9. General) Tj ET
+BT /F1 10.5 Tf 1 0 0 1 56.0 706.0 Tm (This Agreement is governed by the laws of North Carolina. It is the entire agreement between) Tj ET
+BT /F1 10.5 Tf 1 0 0 1 56.0 691.5 Tm (the parties on its subject and may be changed only in a writing signed by both.) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 56.0 673.0 Tm (Open points for the next call: the incident notice window \(Supplier asks for seventy-two hours\), the) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 56.0 659.5 Tm (cap in section 8, and the audit frequency.) Tj ET
+0.94 g 56.0 635.0 500.0 21.5 re f 0 g
+BT /F2 9.5 Tf 1 0 0 1 60.0 643.0 Tm (Signed for the Bank) Tj ET
+BT /F2 9.5 Tf 1 0 0 1 310.0 643.0 Tm (Signed for the Supplier) Tj ET
+0.50 w 0.80 G 56.0 633.0 m 556.0 633.0 l S 0 G
+BT /F1 9.5 Tf 1 0 0 1 60.0 621.5 Tm (Name, title, date) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 310.0 621.5 Tm (Name, title, date) Tj ET
+0.50 w 0.80 G 56.0 611.5 m 556.0 611.5 l S 0 G
+endstream
+endobj
+8 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 7 0 R /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> >>
+endobj
+xref
+0 9
+0000000000 65535 f 
+0000000015 00000 n 
+0000000064 00000 n 
+0000000127 00000 n 
+0000000224 00000 n 
+0000000326 00000 n 
+0000005056 00000 n 
+0000005192 00000 n 
+0000006577 00000 n 
+trailer
+<< /Size 9 /Root 1 0 R /Info << /Title (Master Services Agreement \(Draft v3\)) /Producer (AI Governance Center prototype) >> >>
+startxref
+6713
+%%EOF

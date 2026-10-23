@@ -1,0 +1,82 @@
+%PDF-1.4
+%‚„œ”
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [6 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>
+endobj
+5 0 obj
+<< /Length 3744 >>
+stream
+BT /F1 8.0 Tf 0.45 g 1 0 0 1 56.0 770.0 Tm (Operations meeting notes, 06/12/2026) Tj ET 0 g
+BT /F1 8.0 Tf 0.45 g 1 0 0 1 496.0 770.0 Tm (Page 1) Tj ET 0 g
+0.50 w 0.80 G 56.0 764.0 m 556.0 764.0 l S 0 G
+BT /F1 7.0 Tf 0.45 g 1 0 0 1 56.0 40.0 Tm (Brookhaven Financial. Fictional sample generated for the AI Governance Center prototype; every name, account and amount is invented.) Tj ET 0 g
+BT /F2 16.0 Tf 1 0 0 1 56.0 720.0 Tm (Weekly operations meeting) Tj ET
+BT /F1 9.5 Tf 0.45 g 1 0 0 1 56.0 700.0 Tm (Friday 06/12/2026, 9:00 to 9:45 AM, Charlotte, conference room 4B and Teams. Notes taken by the) Tj ET 0 g
+BT /F1 9.5 Tf 0.45 g 1 0 0 1 56.0 688.0 Tm (meeting owner.) Tj ET 0 g
+BT /F2 10.5 Tf 1 0 0 1 56.0 665.5 Tm (Attendees) Tj ET
+BT /F1 10.5 Tf 1 0 0 1 56.0 646.0 Tm (Priya \(operations lead\), Marcus \(branch network\), Elena \(contact center\), Tom \(technology\),) Tj ET
+BT /F1 10.5 Tf 1 0 0 1 56.0 631.5 Tm (Yuki \(marketing, first 20 minutes\).) Tj ET
+BT /F2 10.5 Tf 1 0 0 1 56.0 612.0 Tm (Agenda and discussion) Tj ET
+BT /F1 10.5 Tf 1 0 0 1 66.0 592.5 Tm (1. Account onboarding: same-day opening reached 71% last week, against the 80% goal.) Tj ET
+BT /F1 10.5 Tf 1 0 0 1 66.0 578.0 Tm (Exceptions still wait two to four days in manual review; identity checks that fail the) Tj ET
+BT /F1 10.5 Tf 1 0 0 1 66.0 563.5 Tm (automated step are the main cause. Priority for the next sprint.) Tj ET
+BT /F1 10.5 Tf 1 0 0 1 66.0 544.0 Tm (2. Complaint volume: phone remains the largest channel; chat volume is growing since the) Tj ET
+BT /F1 10.5 Tf 1 0 0 1 66.0 529.5 Tm (May launch. Elena will bring the Q2 chart to the leadership review.) Tj ET
+BT /F1 10.5 Tf 1 0 0 1 66.0 510.0 Tm (3. Fee transparency program: the revised fee schedule goes live on 07/01. Branch scripts) Tj ET
+BT /F1 10.5 Tf 1 0 0 1 66.0 495.5 Tm (and the website copy are ready; the customer letter still needs a final read.) Tj ET
+BT /F1 10.5 Tf 1 0 0 1 66.0 476.0 Tm (4. AI tools: a reminder that only AI systems approved in the AI Registry may be used for) Tj ET
+BT /F1 10.5 Tf 1 0 0 1 66.0 461.5 Tm (customer work, and that card numbers and full account numbers must never be typed into a) Tj ET
+BT /F1 10.5 Tf 1 0 0 1 66.0 447.0 Tm (chat.) Tj ET
+BT /F2 10.5 Tf 1 0 0 1 56.0 427.5 Tm (Decisions) Tj ET
+BT /F1 10.5 Tf 1 0 0 1 56.0 408.0 Tm (Manual-review exceptions get a dedicated queue with a one-day target. The fee letter goes) Tj ET
+BT /F1 10.5 Tf 1 0 0 1 56.0 393.5 Tm (out on 06/22 after Legal's read.) Tj ET
+BT /F2 10.5 Tf 1 0 0 1 56.0 374.0 Tm (Action items) Tj ET
+0.94 g 56.0 349.5 500.0 21.5 re f 0 g
+BT /F2 9.5 Tf 1 0 0 1 60.0 357.5 Tm (Owner) Tj ET
+BT /F2 9.5 Tf 1 0 0 1 140.0 357.5 Tm (Action) Tj ET
+BT /F2 9.5 Tf 1 0 0 1 460.0 357.5 Tm (Due) Tj ET
+0.50 w 0.80 G 56.0 347.5 m 556.0 347.5 l S 0 G
+BT /F1 9.5 Tf 1 0 0 1 60.0 336.0 Tm (Tom) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 140.0 336.0 Tm (Configure the exception queue and the one-day timer) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 460.0 336.0 Tm (06/19) Tj ET
+0.50 w 0.80 G 56.0 326.0 m 556.0 326.0 l S 0 G
+BT /F1 9.5 Tf 1 0 0 1 60.0 314.5 Tm (Elena) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 140.0 314.5 Tm (Send the Q2 complaint chart with channel commentary) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 460.0 314.5 Tm (06/16) Tj ET
+0.50 w 0.80 G 56.0 304.5 m 556.0 304.5 l S 0 G
+BT /F1 9.5 Tf 1 0 0 1 60.0 293.0 Tm (Yuki) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 140.0 293.0 Tm (Final read of the fee letter with Legal) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 460.0 293.0 Tm (06/19) Tj ET
+0.50 w 0.80 G 56.0 283.0 m 556.0 283.0 l S 0 G
+BT /F1 9.5 Tf 1 0 0 1 60.0 271.5 Tm (Marcus) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 140.0 271.5 Tm (Brief branch managers on the same-day goal) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 460.0 271.5 Tm (06/17) Tj ET
+0.50 w 0.80 G 56.0 261.5 m 556.0 261.5 l S 0 G
+endstream
+endobj
+6 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 5 0 R /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> >>
+endobj
+xref
+0 7
+0000000000 65535 f 
+0000000015 00000 n 
+0000000064 00000 n 
+0000000121 00000 n 
+0000000218 00000 n 
+0000000320 00000 n 
+0000004116 00000 n 
+trailer
+<< /Size 7 /Root 1 0 R /Info << /Title (Operations meeting notes, 06/12/2026) /Producer (AI Governance Center prototype) >> >>
+startxref
+4252
+%%EOF
