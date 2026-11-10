@@ -946,3 +946,51 @@ mark.hit { background: #ffe58f; color: inherit; padding: 0 1px; border-radius: 2
 .guide-float[hidden] { display: none; }  /* the display rule above would otherwise override the hidden attribute */
 .guide-float:hover { border-color: var(--accent); color: var(--accent); }
 .guide-float svg { width: 14px; height: 14px; }
+
+/* AI Policy Rules, Risk scoring (2026-11-10): the factor weights, the risk levels, what a staged change would move, and the versions. */
+.rs-grid td { vertical-align: top; }
+.rs-grid th:nth-child(2), .rs-grid td:nth-child(2) { width: 220px; }
+.rs-grid th:nth-child(3), .rs-grid td:nth-child(3) { width: 140px; text-align: right; }
+.rs-grid .sel { min-width: 150px; }
+.rs-grid tr.rs-off td:first-child { opacity: 0.6; }
+.rs-tag { margin-left: 0; }
+.rs-points { margin-top: 3px; color: var(--text-primary); }
+.rs-key { margin: 0 0 10px; }
+.rs-out { margin: 2px 0 10px; }
+.rs-levels { display: flex; flex-wrap: wrap; gap: 14px 30px; margin-bottom: 14px; }
+.rs-level { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+.rs-num { width: 76px; }
+.rs-ranges { display: flex; flex-wrap: wrap; gap: 8px 24px; font-size: 13px; margin-bottom: 10px; }
+.rs-range { display: inline-flex; align-items: center; gap: 6px; }
+.rs-range .risk-badge { padding-left: 8px; }
+.rs-prev td { vertical-align: middle; }
+.rs-changes { list-style: disc; margin: 0 0 12px 18px; padding: 0; font-size: 13px; }
+.rs-changes li { padding: 2px 0; }
+
+/* User guide: a worked risk score as a table and a picture (Gabriel, 2026-11-10). In the picture each factor's bar starts where the one
+   before it ended, so the last bar ends at the score; the shaded columns are the risk levels. Built by tools/build_guide.py from one
+   :::score block, so the table and the picture cannot disagree. */
+.guide-score-table td { vertical-align: top; }
+.guide-score-table td:first-child { white-space: nowrap; }
+.guide-score-table th.num, .guide-score-table td.num { text-align: right; }
+.guide-score-table tr.gs-zero td { color: var(--text-secondary); }
+.guide-score-table tr.gs-sum td { border-top: 1px solid var(--border-strong); }
+.guide-score { margin: 4px 0 12px; padding: 14px 16px 12px; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 10px; }
+.gs-row { display: grid; grid-template-columns: 216px minmax(0, 1fr) 46px 46px; align-items: stretch; font-size: 12.5px; line-height: 1.35; }
+.gs-label { padding: 6px 10px 6px 0; }
+.gs-num { padding: 6px 0 6px 8px; text-align: right; font-variant-numeric: tabular-nums; }
+.gs-track { position: relative; display: flex; }
+.gs-b { display: block; font-style: normal; }
+.gs-low { background: rgba(31, 157, 85, 0.10); }
+.gs-moderate { background: var(--warn-soft); }
+.gs-high { background: var(--danger-soft); }
+.gs-critical { background: rgba(197, 48, 48, 0.24); }
+.gs-head .gs-b { text-align: center; font-size: 11px; font-weight: 700; padding: 6px 2px; color: var(--text-primary); }
+.gs-head .gs-num { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-secondary); }
+.gs-fill { position: absolute; top: 6px; bottom: 6px; min-width: 2px; background: var(--accent); border-radius: 3px; }
+.gs-total .gs-label, .gs-total .gs-num, .gs-total .gs-track { border-top: 1px solid var(--border-strong); font-weight: 700; }
+.gs-fill-total { background: var(--text-primary); }
+.gs-ticks { display: block; height: 20px; }
+.gs-ticks i { position: absolute; top: 4px; transform: translateX(-50%); font-style: normal; font-size: 10.5px; color: var(--text-secondary); }
+.guide-score figcaption { margin-top: 4px; font-size: 13px; color: var(--text-secondary); }
+.gs-lead { margin-bottom: 8px; font-size: 13px; color: var(--text-secondary); }

@@ -175,7 +175,7 @@
     if (!f) return null;
     const findings = f.evidence.findingIds.map((id) => (S.byId.finding ? S.byId.finding[id] : D.findings.find((y) => y.findingId === id))).filter(Boolean);
     const def = S.RISK_MODEL.factors.find((x) => x.key === key) || {};
-    return { key, label: f.label, points: f.points, detail: f.detail, how: def.how || "", findings, ints: new Set(f.evidence.interactionIds), from: f.evidence.from, to: f.evidence.to };
+    return { key, label: f.label, points: f.points, detail: f.detail, how: `${def.what || ""} ${S.riskFactorPoints(key)}` + (f.weight && f.weight !== "standard" ? ` Weight ${S.riskWeightLabel(f.weight)}, under Risk scoring version ${S.riskScoring().version}.` : ""), findings, ints: new Set(f.evidence.interactionIds), from: f.evidence.from, to: f.evidence.to };
   }
   function riskWindowText(r) {
     const nf = r.findings.length, ni = r.ints.size, span = r.from ? `${U.fmtDate(r.from)} to ${U.fmtDate(r.to)}` : "";

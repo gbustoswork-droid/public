@@ -290,26 +290,92 @@
      every draw and never stored, from facts the module already holds: additive points, each factor capped, confirmed violations rather than raw
      detections, and every factor a link to its evidence and a sentence saying what would lower it. The activity factors use a rolling 90 days,
      recurrence 120; the state factors have no window. "Not archived, by decision" adds nothing (Gabriel). A business group's score is its
-     riskiest item plus its own gaps. The weights are product defaults published as Risk model 1.0. */
+     riskiest item plus its own gaps. The weights are the product's defaults; since 2026-11-10 a customer weighs them on AI Policy Rules, Risk scoring (below). */
   const SEV_PTS = { Critical: 10, High: 6, Medium: 3, Low: 1 };
   S.RISK_MODEL = {
     version: "1.0", since: "2026-10-21", windowDays: 90, recurrenceDays: 120, backlogDays: 30, trendDays: 30,
     bands: [["Critical", 75], ["High", 50], ["Moderate", 25], ["Low", 0]],
+    /* Each factor says what it is in plain words (`what`), holds its point values once (`n`), and words the points that count at a weight
+       (`points`: w gives a point value at that weight, cap the most the factor can add). The page, the dialog and the evidence cards all
+       print these, and riskCompute reads the same `n`, so the words can never disagree with the score (Gabriel, 2026-11-10: every factor
+       rewritten to be easy to understand, always visible, and in whole numbers only). */
     factors: [
-      { key: "violations", label: "Confirmed violations, 90 days", cap: 30, how: "Critical 10, High 6, Medium 3, Low 1 for each violation a reviewer confirmed on its interactions in the last 90 days. Dismissed findings count nothing." },
-      { key: "sensitive", label: "Sensitive data handled, 90 days", cap: 15, how: "2 for each distinct sensitive data class seen in its interactions, up to 6, plus 1 for each interaction that carried sensitive data, up to 9, permitted use included." },
-      { key: "approval", label: "Approval", cap: 15, how: "Expired or Suspended 15, Rejected 10, Pending 8. Approved adds nothing; a managed AI asset has no approval of its own." },
-      { key: "owner", label: "Accountable owner", cap: 10, how: "10 when the registration has no owner, or its owner is terminated, on leave or inactive." },
-      { key: "coverage", label: "Review coverage", cap: 10, how: "10 when no reviewer's Archive360 Entitlement Policy covers the business group." },
-      { key: "drift", label: "Configuration drift", cap: 5, how: "5 when instructions, knowledge, an Action or a capability changed after the last approval or reconfirmation." },
-      { key: "reach", label: "Reach", cap: 8, how: "4 when the whole workspace or 100 or more people can use it, 4 for an Action with a shared key, 2 for an Action calling a domain outside the organization." },
-      { key: "remediation", label: "Open remediation", cap: 10, how: "5 for each approved remediation still waiting for the owner, or escalation still open." },
-      { key: "recurrence", label: "Recurring conduct", cap: 9, how: "3 for each person with three or more confirmed violations on it in 120 days." },
-      { key: "backlog", label: "Review backlog", cap: 8, how: "2 for each finding awaiting review for more than 30 days. An aging queue is a control failure, not a classifier's noise." },
-      { key: "origin", label: "Origin", cap: 8, how: "8 for a GPT built outside the workspace, whose configuration Archive360 cannot archive; 6 for an AI system added from an unclaimed API key." }
+      { key: "violations", label: "Confirmed violations, 90 days", cap: 30, n: SEV_PTS,
+        what: "Findings in its interactions from the last 90 days that a reviewer confirmed as violations. Dismissed findings, and findings still awaiting review, add nothing.",
+        points: (w, cap, n) => `Each confirmed violation adds points by its severity: Critical ${w(n.Critical)} · High ${w(n.High)} · Medium ${w(n.Medium)} · Low ${w(n.Low)}. They add up, to at most ${cap}.` },
+      { key: "sensitive", label: "Sensitive data handled, 90 days", cap: 15, n: { perClass: 2, classCap: 6, perInteraction: 1, interactionCap: 9 },
+        what: "How much sensitive data the rules found in its interactions in the last 90 days, whether or not a reviewer confirmed a violation.",
+        points: (w, cap, n) => `Across all its interactions: each different kind of sensitive data found adds ${w(n.perClass)}, up to ${w(n.classCap)}, and each interaction that carried any adds ${w(n.perInteraction)}, up to ${w(n.interactionCap)}.` },
+      { key: "approval", label: "Approval", cap: 15, n: { Expired: 15, Suspended: 15, Rejected: 10, Pending: 8 },
+        what: "The status of its registration on the AI Registry. An approved registration adds nothing. An AI asset managed within its platform has no registration of its own, so nothing is added.",
+        points: (w, cap, n) => `Adds one of these: ${w(n.Expired)} when the approval is expired or suspended, ${w(n.Rejected)} when it was rejected, ${w(n.Pending)} while it awaits an approver.` },
+      { key: "owner", label: "Accountable owner", cap: 10, n: { gap: 10 },
+        what: "Whether its registration names an accountable owner who is still active. An AI asset with no registration of its own has no owner to check, so nothing is added.",
+        points: (w, cap, n) => `Adds ${w(n.gap)} when its registration has no accountable owner, or the owner is terminated, on leave or inactive.` },
+      { key: "coverage", label: "Review coverage", cap: 10, n: { gap: 10 },
+        what: "Whether any reviewer can see its business group's AI activity. Without one, nobody can review its findings.",
+        points: (w, cap, n) => `Adds ${w(n.gap)} when no reviewer has access to its business group's activity.` },
+      { key: "drift", label: "Configuration drift", cap: 5, n: { changed: 5 },
+        what: "Whether its configuration changed after its registration was last approved or reconfirmed, so the approval may no longer describe what is running.",
+        points: (w, cap, n) => `Adds ${w(n.changed)}, once, when its instructions, knowledge files, Actions, capabilities or recommended model changed after that date. More changes add nothing more.` },
+      { key: "reach", label: "Reach", cap: 8, n: { wide: 4, sharedKey: 4, outside: 2 },
+        what: "How widely it is shared, and whether it can call other systems.",
+        points: (w, cap, n) => `Adds ${w(n.wide)} when the whole workspace, or 100 or more people, can use it. Adds ${w(n.sharedKey)} when one of its Actions signs in to another system with a single key shared by everyone. Adds ${w(n.outside)} when one of its Actions calls a system outside your organization. Each counts once, and together they add at most ${cap}.` },
+      { key: "remediation", label: "Open remediation", cap: 10, n: { each: 5 },
+        what: "Escalations about it that are not finished: a reviewer said something must change, and an approver has not decided yet or the owner has not made the change.",
+        points: (w, cap, n) => `Each unfinished escalation adds ${w(n.each)}. They add up, to at most ${cap}.` },
+      { key: "recurrence", label: "Recurring conduct", cap: 9, n: { each: 3 },
+        what: "People who repeatedly violate rules while using it. The points go to its score, not to the person.",
+        points: (w, cap, n) => `Each person with three or more confirmed violations on it in the last 120 days adds ${w(n.each)}. They add up, to at most ${cap}.` },
+      { key: "backlog", label: "Review backlog", cap: 8, n: { each: 2 },
+        what: "Findings in its interactions that have waited too long for a reviewer to decide.",
+        points: (w, cap, n) => `Each finding that has waited more than 30 days adds ${w(n.each)}. They add up, to at most ${cap}.` },
+      { key: "origin", label: "Origin", cap: 8, n: { outsideGpt: 8, unclaimedKey: 6 },
+        what: "How it came to be known, when that limits what Archive360 can check.",
+        points: (w, cap, n) => `Adds one of these: ${w(n.outsideGpt)} when it is a GPT built outside your workspace, because its instructions, knowledge files and Actions cannot be archived; ${w(n.unclaimedKey)} when it is an AI system that was registered only after its API access was found in Unregistered AI.` }
     ]
   };
-  S.riskBandOf = function (score) { const b = S.RISK_MODEL.bands.find(([, min]) => score >= min); return { band: b[0], cls: b[0].toLowerCase() }; };
+  /* Risk scoring (Gabriel, 2026-11-10): the customer weighs the product's eleven factors and sets the score at which each risk level starts,
+     on AI Policy Rules, Risk scoring. A weight is Off, Lower (about half), Standard or Higher (about one and a half times), never a number, and every point value and limit is a whole number at every weight (Gabriel, 2026-11-10); the factors,
+     the windows and the cadence rule stay the product's. A change is published at once as a new version with a required note and an audit
+     event. Scores are never stored, so every score follows on its next view; the 30-day movement compares both dates under the scoring in
+     force today, so a change here never shows as movement. Version 1 is the product default. "Risk level" is the word the user reads
+     (Gabriel, 2026-11-10: never "risk band"); the code keeps band in its identifiers. */
+  S.RISK_WEIGHTS = [["off", "Off", "left out"], ["lower", "Lower", "counts about half as much"], ["standard", "Standard", "counted as shown"], ["higher", "Higher", "counts about one and a half times as much"]];
+  const WEIGHT = { off: 0, lower: 0.5, standard: 1, higher: 1.5 };
+  S.riskDefaultThresholds = () => ({ Moderate: 25, High: 50, Critical: 75 });
+  D.settings.riskScoring = D.settings.riskScoring || { version: 1, since: null, publishedByMemberId: null, note: "", weights: {}, thresholds: S.riskDefaultThresholds(), history: [{ version: 1, date: null, byMemberId: null, note: "", changes: [], productDefault: true }] };
+  let scoringPreview = null, scoreOnly = false; // a staged scoring, only while its consequences are computed
+  S.riskScoring = () => scoringPreview || D.settings.riskScoring;
+  S.riskWeightOf = (key, sc) => ((sc || S.riskScoring()).weights[key] || "standard");
+  S.riskWeightLabel = (w) => (S.RISK_WEIGHTS.find((x) => x[0] === w) || S.RISK_WEIGHTS[2])[1];
+  S.riskWeightWords = (w) => (S.RISK_WEIGHTS.find((x) => x[0] === w) || S.RISK_WEIGHTS[2])[2];
+  S.riskFactorCap = (key, sc) => { const def = S.RISK_MODEL.factors.find((x) => x.key === key); return def ? Math.round(def.cap * WEIGHT[S.riskWeightOf(key, sc)]) : 0; };
+  const factorDef = (key) => S.RISK_MODEL.factors.find((x) => x.key === key);
+  const weighted = (key, n, sc) => Math.round(n * WEIGHT[S.riskWeightOf(key, sc)]); // whole numbers only
+  S.riskFactorWhat = (key) => (factorDef(key) || {}).what || "";
+  S.riskFactorPoints = function (key, sc) { const def = factorDef(key); if (!def) return ""; if (!WEIGHT[S.riskWeightOf(key, sc)]) return "Not counted while the weight is Off."; return def.points((n) => weighted(key, n, sc), S.riskFactorCap(key, sc), def.n); };
+  S.riskLevelRanges = function (sc) { const t = (sc || S.riskScoring()).thresholds; return [["Low", 0, t.Moderate - 1], ["Moderate", t.Moderate, t.High - 1], ["High", t.High, t.Critical - 1], ["Critical", t.Critical, 100]]; };
+  S.riskScoringIsDefault = function (sc) { sc = sc || S.riskScoring(); const d = S.riskDefaultThresholds(); return !Object.keys(sc.weights).some((k) => sc.weights[k] && sc.weights[k] !== "standard") && ["Moderate", "High", "Critical"].every((k) => sc.thresholds[k] === d[k]); };
+  /* A risk level the weights leave out of reach (Gabriel, 2026-11-10: a warning, never a block). No AI system or AI asset can score more than
+     its factors' limits added together, so a risk level that starts above that total can never be reached: with every factor at Lower the
+     limits add up to 66 and Critical, at 75, is out of reach. The total is an upper bound, so the warning fires only when a level is
+     certainly unreachable. A business group adds its own two gaps to its riskiest item, so the sentence speaks of AI systems and AI assets. */
+  S.riskUnreachable = function (sc) {
+    sc = sc || S.riskScoring();
+    const total = U.sum(S.RISK_MODEL.factors, (f) => S.riskFactorCap(f.key, sc)), t = sc.thresholds;
+    const levels = ["Moderate", "High", "Critical"].filter((k) => Number.isInteger(t[k]) && total < t[k]), starts = levels.map((k) => t[k]);
+    const words = (a, last) => (a.length < 2 ? String(a[0] === undefined ? "" : a[0]) : `${a.slice(0, -1).join(", ")} ${last} ${a[a.length - 1]}`);
+    return { total, levels, starts, names: words(levels, "or"), startsText: words(starts, "and") };
+  };
+  S.riskUnreachableText = function (sc, lead) {
+    const u = S.riskUnreachable(sc); if (!u.levels.length) return "";
+    return `${lead || "With these weights"} the limits add up to ${u.total}, so no AI system or AI asset can reach ${u.names}, which ${u.levels.length === 1 ? "starts" : "start"} at ${u.startsText}.`;
+  };
+  S.riskBandOf = function (score) { const t = S.riskScoring().thresholds, b = score >= t.Critical ? "Critical" : score >= t.High ? "High" : score >= t.Moderate ? "Moderate" : "Low"; return { band: b, cls: b.toLowerCase() }; };
+  S.riskIsHigh = (score) => score >= S.riskScoring().thresholds.High;
+  const ownGap = (key) => weighted(key, factorDef(key).n.gap); // a business group's own gaps follow the two factors' weights
+  const scoredUnder = () => (S.riskScoring().version > 1 ? `, under Risk scoring version ${S.riskScoring().version}` : "");
   const dayOf = (s_) => (s_ || "").slice(0, 10);
   const daysBefore = (a, b) => U.daysBetween(a, b); // days from a to b
   /* A finding's status as of a date: decided only once its decision date has passed. */
@@ -359,57 +425,58 @@
     const intIds = new Set(ints.map((x) => x.interactionId));
     const fs = D.findings.filter((f) => intIds.has(f.interactionId) && dayOf(f.detectedAt) <= asOf).map((f) => Object.assign({}, f, { statusAt: findingStatusAt(f, asOf) }));
     const factors = [];
-    const add = (key, points, detail, href, fix, ev) => { const def = M.factors.find((x) => x.key === key), p = Math.min(def.cap, Math.round(points)); if (p > 0) factors.push(Object.assign({ key, label: def.label, cap: def.cap, points: p, detail, href, fix }, ev ? { evidence: ev } : {})); };
+    const N = (key) => factorDef(key).n, wv = (key, n) => weighted(key, n);
+    const add = (key, points, detail, href, fix, ev) => { const def = factorDef(key), w = S.riskWeightOf(key), cap = S.riskFactorCap(key), p = Math.min(cap, points); if (p > 0) factors.push(Object.assign({ key, label: def.label, cap, points: p, detail, href, fix }, w !== "standard" ? { weight: w } : {}, ev ? { evidence: ev } : {})); };
     // 1. confirmed violations
     const conf = fs.filter((f) => f.statusAt === "Confirmed" && win(f.detectedAt));
-    if (conf.length) add("violations", U.sum(conf, (f) => SEV_PTS[f.severity] || 1), `${conf.length} confirmed ${U.plural(conf.length, "violation")}: ${["Critical", "High", "Medium", "Low"].map((sv) => [sv, conf.filter((f) => f.severity === sv).length]).filter(([, n]) => n).map(([sv, n]) => `${n} ${sv}`).join(", ")}`, hrefEvidence("violations", groupId ? `#/groups/${groupId}/findings?view=confirmed` : "#/findings/confirmed"), "Fewer confirmed violations in the last 90 days: the oldest fall out of the window as time passes.", evidence(conf, winFrom, asOf));
+    if (conf.length) add("violations", U.sum(conf, (f) => wv("violations", N("violations")[f.severity] || N("violations").Low)), `${conf.length} confirmed ${U.plural(conf.length, "violation")}: ${["Critical", "High", "Medium", "Low"].map((sv) => [sv, conf.filter((f) => f.severity === sv).length]).filter(([, n]) => n).map(([sv, n]) => `${n} ${sv}`).join(", ")}`, hrefEvidence("violations", groupId ? `#/groups/${groupId}/findings?view=confirmed` : "#/findings/confirmed"), "Fewer confirmed violations in the last 90 days: the oldest fall out of the window as time passes.", evidence(conf, winFrom, asOf));
     // 2. sensitive data handled
     const inWin = fs.filter((f) => win(f.detectedAt)), classes = U.uniq(inWin.map((f) => f.dataClassId)), carriers = U.uniq(inWin.map((f) => f.interactionId));
-    if (classes.length) add("sensitive", Math.min(6, 2 * classes.length) + Math.min(9, carriers.length), `${classes.length} ${U.plural(classes.length, "class", "classes")} of sensitive data (${classes.map((id) => S.dcName(id)).join(", ")}) in ${carriers.length} ${U.plural(carriers.length, "interaction")}`, hrefEvidence("sensitive", hrefFindings), "Less sensitive data in its interactions, or a narrower approved purpose that keeps such data out of it.", evidence(inWin, winFrom, asOf));
+    if (classes.length) add("sensitive", Math.min(wv("sensitive", N("sensitive").classCap), wv("sensitive", N("sensitive").perClass) * classes.length) + Math.min(wv("sensitive", N("sensitive").interactionCap), wv("sensitive", N("sensitive").perInteraction) * carriers.length), `${classes.length} ${U.plural(classes.length, "class", "classes")} of sensitive data (${classes.map((id) => S.dcName(id)).join(", ")}) in ${carriers.length} ${U.plural(carriers.length, "interaction")}`, hrefEvidence("sensitive", hrefFindings), "Less sensitive data in its interactions, or a narrower approved purpose that keeps such data out of it.", evidence(inWin, winFrom, asOf));
     // 3. approval
     const st = entryStatusAt(e, asOf);
-    const stPts = { Expired: 15, Suspended: 15, Rejected: 10, Pending: 8 }[st] || 0;
+    const stPts = wv("approval", N("approval")[st] || 0);
     if (stPts) add("approval", stPts, st === "Expired" ? `Approval expired${e.reconfirmationDueDate ? ` on ${U.fmtDate(e.reconfirmationDueDate)}` : ""}` : st === "Suspended" ? "Registration suspended" : st === "Pending" ? "Awaiting an approver" : "Rejected", `#/registry/${e.id}`, st === "Expired" ? "The owner reconfirms the registration, or retires it." : st === "Suspended" ? "The owner completes the approved remediation and reconfirms." : st === "Pending" ? "An approver decides the registration." : "A new registration, or retirement.");
     // 4. owner
-    if (e) { const o = S.member(e.ownerMemberId); if (!o || !memberActiveAt(o, asOf)) add("owner", 10, o ? `Owner ${U.statusWord(o)}` : "No accountable owner", `#/registry/${e.id}`, "Name a new accountable owner on the registration."); }
+    if (e) { const o = S.member(e.ownerMemberId); if (!o || !memberActiveAt(o, asOf)) add("owner", wv("owner", N("owner").gap), o ? `Owner ${U.statusWord(o)}` : "No accountable owner", `#/registry/${e.id}`, "Name a new accountable owner on the registration."); }
     // 5. coverage
-    if (grp && !S.coverage(grp.id).length) add("coverage", 10, `No reviewer has access to ${grp.name}'s activity`, "#/settings/readiness", "An Archive360 Entitlement Policy covering the group, assigned to a reviewer, in Administration.");
+    if (grp && !S.coverage(grp.id).length) add("coverage", wv("coverage", N("coverage").gap), `No reviewer has access to ${grp.name}'s activity`, "#/settings/readiness", "An Archive360 Entitlement Policy covering the group, assigned to a reviewer, in Administration.");
     // 6. configuration drift
     if (sys && e && (e.approvedDate || e.lastReconfirmedDate)) {
       const since = [e.approvedDate, e.lastReconfirmedDate].filter(Boolean).sort().pop();
       const drift = (sys.configVersions || []).filter((v) => v.date > since && v.date <= asOf && ["instructions", "knowledge", "action", "capability", "model"].includes(v.kind));
-      if (drift.length) add("drift", 5, `${drift.length} ${U.plural(drift.length, "change")} since the approval of ${U.fmtDate(since)}, last ${drift[drift.length - 1].summary}`, hrefSelf, "The owner reconfirms the registration after reviewing the current configuration.");
+      if (drift.length) add("drift", wv("drift", N("drift").changed), `${drift.length} ${U.plural(drift.length, "change")} since the approval of ${U.fmtDate(since)}, last ${drift[drift.length - 1].summary}`, hrefSelf, "The owner reconfirms the registration after reviewing the current configuration.");
     }
     // 7. reach
     if (sys) {
       let reach = 0; const why = [];
-      if ((sys.sharing || {}).scope === "workspace" || (sys.accessibleUserCount || 0) >= 100) { reach += 4; why.push(`${U.fmtNum(sys.accessibleUserCount || 0)} people can use it`); }
+      if ((sys.sharing || {}).scope === "workspace" || (sys.accessibleUserCount || 0) >= 100) { reach += wv("reach", N("reach").wide); why.push(`${U.fmtNum(sys.accessibleUserCount || 0)} people can use it`); }
       const acts = sys.actions || [];
-      if (acts.some((a) => /key/i.test(a.authType || a.auth || ""))) { reach += 4; why.push("an Action with a shared key"); }
-      if (acts.some((a) => a.external || a.outside)) { reach += 2; why.push("an Action calling an outside domain"); }
+      if (acts.some((a) => /key/i.test(a.authType || a.auth || ""))) { reach += wv("reach", N("reach").sharedKey); why.push("an Action with a shared key"); }
+      if (acts.some((a) => a.external || a.outside)) { reach += wv("reach", N("reach").outside); why.push("an Action calling an outside domain"); }
       if (reach) add("reach", reach, why.join(", "), hrefSelf, "Narrower sharing, or per-user authentication on its Actions.");
     }
     // 8. open remediation
     const escs = D.escalations.filter((x) => (sys ? x.aiSystemId === sys.id : (e && x.registerEntryId === e.id)) && dayOf(x.escalatedAt) <= asOf && (!x.completedAt || dayOf(x.completedAt) > asOf) && (asOf >= U.today() ? ["Open", "Approved", "Returned"].includes(x.status) : x.status !== "Rejected"));
-    if (escs.length) add("remediation", 5 * escs.length, `${escs.length} ${U.plural(escs.length, "escalation")} open or waiting for the owner`, e ? `#/registry/${e.id}` : hrefFindings, "The owner completes the approved remediation and reconfirms.");
+    if (escs.length) add("remediation", wv("remediation", N("remediation").each) * escs.length, `${escs.length} ${U.plural(escs.length, "escalation")} open or waiting for the owner`, e ? `#/registry/${e.id}` : hrefFindings, "The owner completes the approved remediation and reconfirms.");
     // 9. recurring conduct
     const recWin = (d) => { const n = daysBefore(dayOf(d), asOf); return n >= 0 && n < M.recurrenceDays; };
     const recFs = fs.filter((f) => f.statusAt === "Confirmed" && recWin(f.detectedAt)), byMember = U.countBy(recFs, "memberId");
     const rec = Object.entries(byMember).filter(([, n]) => n >= 3), recIds = new Set(rec.map(([id]) => id));
-    if (rec.length) add("recurrence", 3 * rec.length, `${rec.length} ${U.plural(rec.length, "person", "people")} with three or more confirmed violations in 120 days: ${rec.map(([id]) => S.member(id) ? S.member(id).displayName : id).join(", ")}`, hrefEvidence("recurrence", hrefFindings), "A conduct remediation on the person's use of it.", evidence(recFs.filter((f) => recIds.has(f.memberId)), U.addDays(asOf, -(M.recurrenceDays - 1)), asOf));
+    if (rec.length) add("recurrence", wv("recurrence", N("recurrence").each) * rec.length, `${rec.length} ${U.plural(rec.length, "person", "people")} with three or more confirmed violations in 120 days: ${rec.map(([id]) => S.member(id) ? S.member(id).displayName : id).join(", ")}`, hrefEvidence("recurrence", hrefFindings), "A conduct remediation on the person's use of it.", evidence(recFs.filter((f) => recIds.has(f.memberId)), U.addDays(asOf, -(M.recurrenceDays - 1)), asOf));
     // 10. review backlog
     const old = fs.filter((f) => f.statusAt === "Detected" && daysBefore(dayOf(f.detectedAt), asOf) > M.backlogDays);
-    if (old.length) add("backlog", 2 * old.length, `${old.length} ${U.plural(old.length, "finding")} awaiting review for more than 30 days`, hrefEvidence("backlog", groupId ? `#/groups/${groupId}/findings` : "#/findings"), "Reviewers decide the waiting findings.", evidence(old, null, U.addDays(asOf, -(M.backlogDays + 1))));
+    if (old.length) add("backlog", wv("backlog", N("backlog").each) * old.length, `${old.length} ${U.plural(old.length, "finding")} awaiting review for more than 30 days`, hrefEvidence("backlog", groupId ? `#/groups/${groupId}/findings` : "#/findings"), "Reviewers decide the waiting findings.", evidence(old, null, U.addDays(asOf, -(M.backlogDays + 1))));
     // 11. origin
-    if (sys && sys.external) add("origin", 8, "GPT built outside the workspace; its instructions, knowledge and actions are not archived", hrefSelf, "Prohibit it, or replace it with a GPT built inside the workspace.");
-    else if (inst && (inst.history || []).some((h) => h.action === "Added" && /API (access|key)/i.test(h.detail || ""))) add("origin", 6, "Added from an unclaimed API key, after its activity was found", `#/registry/${e.id}`, "Nothing: the fact stays on the record.");
+    if (sys && sys.external) add("origin", wv("origin", N("origin").outsideGpt), "GPT built outside the workspace; its instructions, knowledge and actions are not archived", hrefSelf, "Prohibit it, or replace it with a GPT built inside the workspace.");
+    else if (inst && (inst.history || []).some((h) => h.action === "Added" && /API (access|key)/i.test(h.detail || ""))) add("origin", wv("origin", N("origin").unclaimedKey), "Added from an unclaimed API key, after its activity was found", `#/registry/${e.id}`, "Nothing: the fact stays on the record.");
     const score = Math.min(100, U.sum(factors, (f) => f.points));
     factors.sort((a, b) => b.points - a.points);
     return Object.assign({ score, factors, asOf, interactions: ints.length }, S.riskBandOf(score));
   }
   function riskWithTrend(t) {
-    const now = riskCompute(t, U.today()), before = riskCompute(t, U.addDays(U.today(), -S.RISK_MODEL.trendDays));
-    return Object.assign(now, { before: before.score, delta: now.score - before.score, model: S.RISK_MODEL.version });
+    const now = riskCompute(t, U.today()), before = scoreOnly ? now : riskCompute(t, U.addDays(U.today(), -S.RISK_MODEL.trendDays));
+    return Object.assign(now, { before: before.score, delta: now.score - before.score, model: S.riskScoring().version });
   }
   /* The target behind an AI asset or a registration. A GPT, Project or Plugin scores on its own record and its own registration if it has one;
      a platform's or custom application's registration scores on the AI system: its direct chats, its approval and owner. */
@@ -438,14 +505,44 @@
     const g = S.group(groupId), items = S.riskItemsForGroup(groupId), r = S.groupReadiness(g), factors = [];
     const top = items[0];
     if (top) factors.push({ key: "top", label: `Riskiest: ${top.name}`, points: top.risk.score, detail: `${top.risk.band}, ${top.risk.factors.length} ${U.plural(top.risk.factors.length, "factor")}: ${top.risk.factors.slice(0, 3).map((f) => f.label.toLowerCase()).join(", ")}`, href: top.href, fix: "Open it: each of its factors says what would lower it." });
-    if (!r.owner || !U.isActive(r.owner)) factors.push({ key: "owner", label: "Accountable owner", points: 10, detail: r.owner ? `Owner ${U.statusWord(r.owner)}` : "No accountable owner", href: `#/groups/${groupId}`, fix: "Name a new owner on the Business Groups page." });
-    if (!r.coverage.length) factors.push({ key: "coverage", label: "Review coverage", points: 10, detail: "No reviewer has access to the group's activity", href: "#/settings/readiness", fix: "An Archive360 Entitlement Policy covering the group, in Administration." });
+    if ((!r.owner || !U.isActive(r.owner)) && ownGap("owner")) factors.push({ key: "owner", label: "Accountable owner", weight: S.riskWeightOf("owner"), points: ownGap("owner"), detail: r.owner ? `Owner ${U.statusWord(r.owner)}` : "No accountable owner", href: `#/groups/${groupId}`, fix: "Name a new owner on the Business Groups page." });
+    if (!r.coverage.length && ownGap("coverage")) factors.push({ key: "coverage", label: "Review coverage", weight: S.riskWeightOf("coverage"), points: ownGap("coverage"), detail: "No reviewer has access to the group's activity", href: "#/settings/readiness", fix: "An Archive360 Entitlement Policy covering the group, in Administration." });
     const score = Math.min(100, U.sum(factors, (f) => f.points));
-    const high = items.filter((i) => i.risk.score >= 50).length;
+    const high = items.filter((i) => S.riskIsHigh(i.risk.score)).length;
     const beforeTop = top ? top.risk.before : 0;
-    return Object.assign({ score, factors, items, high, before: Math.min(100, beforeTop + U.sum(factors.filter((f) => f.key !== "top"), (f) => f.points)), model: S.RISK_MODEL.version }, S.riskBandOf(score), { delta: 0 }, (function () { const b = Math.min(100, beforeTop + U.sum(factors.filter((f) => f.key !== "top"), (f) => f.points)); return { delta: score - b }; })());
+    return Object.assign({ score, factors, items, high, before: Math.min(100, beforeTop + U.sum(factors.filter((f) => f.key !== "top"), (f) => f.points)), model: S.riskScoring().version }, S.riskBandOf(score), { delta: 0 }, (function () { const b = Math.min(100, beforeTop + U.sum(factors.filter((f) => f.key !== "top"), (f) => f.points)); return { delta: score - b }; })());
   };
-  /* The reconfirmation cadence follows the risk band at approval or reconfirmation (Gabriel, 2026-10-21): six months for High and Critical,
+  /* Every score the module shows, under the scoring in force or under a staged one: the AI systems' registrations, every AI asset and the
+     active business groups. The Risk scoring page compares the two before a change is published. */
+  S.riskScoreboard = function (staged) {
+    const run = () => {
+      const rows = [], row = (kind, id, name, type, groupId, href, r) => rows.push({ kind, id, name, type, groupId: groupId || null, href, score: r.score, band: r.band, cls: r.cls });
+      S.registryEntries().filter((e) => !["GPT", "Project", "Plugin"].includes(e.level)).forEach((e) => { const r = S.riskForEntry(e.id); if (r) row("system", e.id, e.name, e.level === "Custom AI system" ? "Custom AI application" : "AI platform", e.groupId, `#/registry/${e.id}`, r); });
+      D.aiSystems.filter((x) => x.type !== "Custom").forEach((x) => { const r = S.riskForAsset(x.id); if (r) row("asset", x.id, x.name, x.type, x.groupId, `#/systems/${x.id}`, r); });
+      S.activeGroups().forEach((g) => { const r = S.riskForGroup(g.id); row("group", g.id, g.name, "Business group", g.id, `#/groups/${g.id}`, r); });
+      return rows;
+    };
+    const was = scoringPreview;
+    scoringPreview = staged || null; scoreOnly = true;
+    try { return run(); } finally { scoringPreview = was; scoreOnly = false; }
+  };
+  /* What a staged scoring changes against the one in force, in the words the page, the version and the audit event use. */
+  S.riskScoringChanges = function (staged, base) {
+    base = base || D.settings.riskScoring; const out = [];
+    S.RISK_MODEL.factors.forEach((f) => { const a = S.riskWeightOf(f.key, base), b = S.riskWeightOf(f.key, staged); if (a !== b) out.push({ kind: "weight", key: f.key, text: `${f.label}: ${S.riskWeightLabel(a)} to ${S.riskWeightLabel(b)}` }); });
+    ["Moderate", "High", "Critical"].forEach((k) => { if (base.thresholds[k] !== staged.thresholds[k]) out.push({ kind: "level", key: k, text: `${k} risk level: starts at ${staged.thresholds[k]}, was ${base.thresholds[k]}` }); });
+    return out;
+  };
+  S.publishRiskScoring = function (staged, note) {
+    const cur = D.settings.riskScoring, p = state.persona, changes = S.riskScoringChanges(staged, cur).map((c) => c.text), v = cur.version + 1, weights = {};
+    S.RISK_MODEL.factors.forEach((f) => { const w = S.riskWeightOf(f.key, staged); if (w !== "standard") weights[f.key] = w; });
+    cur.weights = weights; cur.thresholds = Object.assign({}, staged.thresholds); cur.version = v; cur.since = U.today(); cur.publishedByMemberId = p.memberId; cur.note = note || "";
+    const isDefault = S.riskScoringIsDefault(cur);
+    cur.history.push({ version: v, date: U.today(), byMemberId: p.memberId, note: note || "", changes, productDefault: isDefault });
+    S.logAudit({ category: "Configuration", eventType: "Risk scoring published", refType: "riskScoring", refId: "riskScoring", summary: `Version ${v}${isDefault ? ", the product default restored" : ""}: ${changes.join("; ")}.${note ? ` ${/[.!?]$/.test(note.trim()) ? note.trim() : note.trim() + "."}` : ""}`, details: { version: v, changes } });
+    return cur;
+  };
+  /* The reconfirmation cadence follows the risk level at approval or reconfirmation (Gabriel, 2026-10-21): six months for High and Critical,
      twelve otherwise, fixed until the next reconfirmation, so a due date never moves on its own. */
   S.cadenceForBand = (band) => (band === "High" || band === "Critical" ? 6 : 12);
   S.cadenceFor = function (e) { const r = S.riskForEntry(e.id); return { months: S.cadenceForBand(r ? r.band : "Low"), band: r ? r.band : "Low", score: r ? r.score : 0 }; };
@@ -762,13 +859,13 @@
     const p = state.persona, sys = S.system(spec.aiSystemId), g = S.group(sys.groupId);
     let id = "re_" + sys.name.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "").slice(0, 24);
     while (S.byId.entry[id]) id += "_2";
-    /* The cadence follows the risk band of the asset at registration (Gabriel, 2026-10-21): six months for High and Critical, twelve otherwise. */
+    /* The cadence follows the risk level of the asset at registration (Gabriel, 2026-10-21): six months for High and Critical, twelve otherwise. */
     const r0 = S.riskForAsset(sys.id), band0 = r0 ? r0.band : "Low", months = S.cadenceForBand(band0);
-    const e = { id, level: sys.type === "Project" || sys.type === "Plugin" ? sys.type : "GPT", refId: sys.id, name: sys.name, groupId: sys.groupId, platformId: sys.platformId, ownerMemberId: spec.ownerMemberId, cadenceBand: band0, cadenceSetOn: U.today(),
+    const e = { id, level: sys.type === "Project" || sys.type === "Plugin" ? sys.type : "GPT", refId: sys.id, name: sys.name, groupId: sys.groupId, platformId: sys.platformId, ownerMemberId: spec.ownerMemberId, cadenceBand: band0, cadenceSetOn: U.today(), cadenceScoringVersion: S.riskScoring().version,
       approvedPurpose: spec.approvedPurpose, permittedDataClasses: spec.permittedDataClasses || [], status: "Approved", registeredDate: U.today(), registeredByMemberId: p.memberId,
       approvedDate: U.today(), approvedByMemberId: p.memberId, lastReconfirmedDate: null, reconfirmationDueDate: S.addMonths(U.today(), months), reconfirmationIntervalMonths: months,
       externalIdentifier: sys.externalIdentifier || null, collectionMethod: "Connector", decisionHistory: [], blockers: [], notes: null };
-    decision(e, "Registered", `Registered individually in ${g ? g.name : "its group"}; approved on registration by the registrant. Reconfirm every ${months} months: the risk band was ${band0} (${r0 ? r0.score : 0}) at registration.`, "system", sys.id);
+    decision(e, "Registered", `Registered individually in ${g ? g.name : "its group"}; approved on registration by the registrant. Reconfirm every ${months} months: the risk level was ${band0} (${r0 ? r0.score : 0}) at registration${scoredUnder()}.`, "system", sys.id);
     D.registerEntries.push(e); S.byId.entry[id] = e; S.entryBySystem[sys.id] = e; (S.entriesByGroup[sys.groupId] = S.entriesByGroup[sys.groupId] || []).push(e);
     sys.registerEntryId = id; sys.registrationCoverage = "individual";
     S.logAudit({ category: "Register", eventType: "Registered", groupId: sys.groupId, aiSystemId: sys.id, refType: "register", refId: id, summary: `Registered ${sys.name} individually (owner ${S.member(spec.ownerMemberId) ? S.member(spec.ownerMemberId).displayName : ""}); approved on registration, reconfirm every ${months} months` });
@@ -990,8 +1087,8 @@
   };
   S.approveEntry = function (id, note) {
     const e = S.entry(id), p = state.persona, cad = S.cadenceFor(e), months = cad.months;
-    e.status = "Approved"; e.approvedDate = U.today(); e.approvedByMemberId = p.memberId; e.reconfirmationIntervalMonths = months; e.cadenceBand = cad.band; e.cadenceSetOn = U.today(); e.reconfirmationDueDate = S.addMonths(U.today(), months); e.blockers = [];
-    decision(e, "Approved", `${note || "Approved for use."} Reconfirm every ${months} months: the risk band was ${cad.band} (${cad.score}) at approval.`);
+    e.status = "Approved"; e.approvedDate = U.today(); e.approvedByMemberId = p.memberId; e.reconfirmationIntervalMonths = months; e.cadenceBand = cad.band; e.cadenceSetOn = U.today(); e.cadenceScoringVersion = S.riskScoring().version; e.reconfirmationDueDate = S.addMonths(U.today(), months); e.blockers = [];
+    decision(e, "Approved", `${note || "Approved for use."} Reconfirm every ${months} months: the risk level was ${cad.band} (${cad.score}) at approval${scoredUnder()}.`);
     S.logAudit({ category: "Register", eventType: "Approved", groupId: e.groupId, refType: "register", refId: id, summary: `Approved: ${e.name}${note ? " · " + note : ""}` });
     return e;
   };
@@ -1007,9 +1104,9 @@
     const days = e.reconfirmationDueDate ? Math.round((new Date(e.reconfirmationDueDate + "T00:00:00Z") - new Date(U.today() + "T00:00:00Z")) / 86400000) : null;
     const span = (n) => (n >= 45 ? `${Math.round(n / 30)} ${U.plural(Math.round(n / 30), "month")}` : `${n} ${U.plural(n, "day")}`);
     const timing = days === null || days === 0 ? "" : days > 0 ? ` Reconfirmed ${span(days)} before it was due.` : ` Reconfirmed ${span(-days)} after it was due.`;
-    e.status = "Approved"; e.lastReconfirmedDate = U.today(); e.reconfirmationIntervalMonths = months; e.cadenceBand = cad.band; e.cadenceSetOn = U.today(); e.reconfirmationDueDate = S.addMonths(U.today(), months);
+    e.status = "Approved"; e.lastReconfirmedDate = U.today(); e.reconfirmationIntervalMonths = months; e.cadenceBand = cad.band; e.cadenceSetOn = U.today(); e.cadenceScoringVersion = S.riskScoring().version; e.reconfirmationDueDate = S.addMonths(U.today(), months);
     e.blockers = (e.blockers || []).filter((b) => b !== "Owner terminated");
-    decision(e, "Reconfirmed", `Owner confirmed that it is still needed and still used for its approved purpose.${timing}${note ? " " + note : ""} Reconfirm every ${months} months: the risk band was ${cad.band} (${cad.score}) at reconfirmation.`);
+    decision(e, "Reconfirmed", `Owner confirmed that it is still needed and still used for its approved purpose.${timing}${note ? " " + note : ""} Reconfirm every ${months} months: the risk level was ${cad.band} (${cad.score}) at reconfirmation${scoredUnder()}.`);
     S.logAudit({ category: "Register", eventType: "Reconfirmed", groupId: e.groupId, refType: "register", refId: id, summary: `Reconfirmed: ${e.name}; next due ${e.reconfirmationDueDate}` });
     return e;
   };

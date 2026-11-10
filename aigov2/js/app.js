@@ -12,6 +12,7 @@
   R.add("/unregistered/:id", (params) => P.unregistered.item(params.id));
   R.add("/rules", () => P.rules.render("rules"));
   R.add("/rules/matrix", () => P.rules.render("matrix")); // the Permitted data by business group view (before /rules/:id, which would take "matrix" for an id)
+  R.add("/rules/risk", () => P.rules.render("risk")); // the Risk scoring view (Gabriel, 2026-11-10), also before /rules/:id
   R.add("/rules/:id", (params) => P.rules.rule(params.id));
   R.add("/audit", () => P.audit.render());
   R.add("/settings/:page?", (params) => P.settings.render(params));

@@ -1,5 +1,5 @@
 /* Groups: the primary lens. Cards and grid ported from v216. Version 1 shows the day-one facts for each business group:
-   readiness (owner and reviewer access), members, AI assets, findings awaiting review, interactions, and since 2026-10-21 the risk band. */
+   readiness (owner and reviewer access), members, AI assets, findings awaiting review, interactions, and since 2026-10-21 the risk level. */
 (function () {
   const U = AGC.util, S = AGC.store, D = AGC.data, I = AGC.icons, C = AGC.components;
   AGC.pages = AGC.pages || {};

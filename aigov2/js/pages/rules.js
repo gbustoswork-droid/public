@@ -15,7 +15,7 @@
   /* Where a conditional rule permits its sensitive data: wherever its own condition holds. */
   const CONDITION = { "Unsanctioned system": "Only in a registered AI system", "Preservation": "Not while the content is under legal hold", "Fair treatment": "Only with a suitability review", "Consumer protection": "Only with principal review", "Bulk exposure": "Not in bulk", "Confidential business": "Only within the validated purpose" };
   const DAYS = 90;
-  const fresh = () => ({ view: "rules", tile: "all", family: "all", group: "all", search: "" });
+  const fresh = () => ({ view: "rules", tile: "all", family: "all", group: "all", search: "", risk: null, riskAll: false });
   let ui = fresh();
   P.ui = () => ui;
   (AGC.personaHooks = AGC.personaHooks || []).push(() => { ui = fresh(); });
@@ -75,6 +75,103 @@
     return C.card("Permitted sensitive data by business group", `<p class="small muted">Derived from the active rules and never edited here: change a rule and the matrix follows. Hover a cell for the rules behind it.</p><table class="grid mx-table"><thead><tr><th>Business group</th>${classes.map((dc) => `<th title="${U.esc(dc.name)}">${U.esc(dc.short)}</th>`).join("")}</tr></thead><tbody>${rows}</tbody></table><div class="mx-legend">${legend}</div>`);
   }
 
+  /* ---------- Risk scoring (Gabriel, 2026-11-10): how much each factor of the risk score counts, and where each risk level starts ----------
+     The third view of this tab: the scoring is policy with versions, changed by whoever administers the rules and readable by every governance
+     role, and Settings is Administrator-only. Edits are staged on the page, as on Business Group Mapping: a weight per factor (Off, Lower,
+     Standard, Higher; never a number; each row shows the whole-number points that count at the weight selected) and the score at which Moderate, High and Critical start. While something is staged the page shows
+     what would change (every AI system, AI asset and business group whose risk level moves), and Publish changes… asks for the required
+     change note. Nothing here waits for an approver; the publish is an audit event under Setup changes. */
+  const RS_DESCRIPTION = "How the risk score of every AI system and AI asset is weighed: how much each factor counts, and the score at which each risk level starts. A change is published as a new version with a note, and every score follows at once.";
+  const RS_LEVELS = ["Moderate", "High", "Critical"], RS_ORDER = ["Low", "Moderate", "High", "Critical"];
+  const rsCopy = (sc) => ({ weights: Object.assign({}, sc.weights), thresholds: Object.assign({}, sc.thresholds) });
+  const rsStaged = () => rsCopy(ui.risk || S.riskScoring());
+  const rsSet = (next) => { ui.risk = S.riskScoringChanges(next, S.riskScoring()).length ? next : null; ui.riskAll = false; };
+  const rsDot = (t) => { t = String(t || "").trim(); return !t || /[.!?]$/.test(t) ? t : t + "."; };
+  function rsProblem(t) {
+    if (RS_LEVELS.some((k) => !Number.isInteger(t[k]) || t[k] < 1 || t[k] > 100)) return "Each risk level must start at a whole number from 1 to 100.";
+    if (!(t.Moderate < t.High && t.High < t.Critical)) return "The risk levels must rise: Moderate below High, and High below Critical.";
+    return "";
+  }
+  /* What publishing would move: every score under the scoring in force beside the same score under the staged one. */
+  function rsPreview(st) {
+    const now = S.riskScoreboard(), after = S.riskScoreboard(Object.assign({}, S.riskScoring(), st)), was = {};
+    now.forEach((r) => { was[r.kind + ":" + r.id] = r; });
+    const pairs = after.map((a) => ({ a, b: was[a.kind + ":" + a.id] })).filter((x) => x.b);
+    const moved = pairs.filter((x) => x.a.band !== x.b.band).sort((x, y) => y.a.score - x.a.score || x.a.name.localeCompare(y.a.name));
+    const changed = pairs.filter((x) => x.a.score !== x.b.score);
+    return { moved, changed, most: changed.reduce((m, x) => Math.max(m, Math.abs(x.a.score - x.b.score)), 0) };
+  }
+  function rsImpact(prev) {
+    const items = prev.moved.filter((x) => x.a.kind !== "group").length, groups = prev.moved.length - items, parts = [];
+    if (items) parts.push(`${items} ${U.plural(items, "AI system or AI asset", "AI systems and AI assets")}`);
+    if (groups) parts.push(`${groups} ${U.plural(groups, "business group")}`);
+    if (parts.length) return `Publishing changes the risk level of ${parts.join(" and ")}.`;
+    if (prev.changed.length) return `Publishing changes ${prev.changed.length} ${U.plural(prev.changed.length, "score")} by up to ${prev.most} ${U.plural(prev.most, "point")}; no risk level changes.`;
+    return "Publishing changes no score today: nothing scored depends on what you changed.";
+  }
+  function riskHtml() {
+    const cur = S.riskScoring(), p = perm(), edit = p.allowed, st = rsStaged(), staged = !!ui.risk && edit, stSc = Object.assign({}, cur, st), defaults = S.riskDefaultThresholds();
+    const problem = staged ? rsProblem(st.thresholds) : "", changes = staged ? S.riskScoringChanges(st, cur) : [], prev = staged && !problem ? rsPreview(st) : null;
+    const by = cur.publishedByMemberId ? S.member(cur.publishedByMemberId) : null, isDefault = S.riskScoringIsDefault(cur);
+    const diffs = S.riskScoringChanges(cur, { weights: {}, thresholds: defaults }).length;
+    const published = cur.version > 1 ? `Published ${U.fmtDate(cur.since)}${by ? ` by ${U.esc(by.displayName)}` : ""}${cur.note ? `: ${U.esc(rsDot(cur.note))}` : "."} ` : "";
+    const lead = isDefault
+      ? `${published}The product default: every factor counts at its standard weight, and the risk levels start at ${defaults.Moderate}, ${defaults.High} and ${defaults.Critical}.`
+      : `${published}${diffs} ${U.plural(diffs, "setting differs", "settings differ")} from the product default.`;
+    const inForce = S.riskUnreachable(cur), wouldBe = staged && !problem ? S.riskUnreachable(stSc) : null;
+    const lead2 = inForce.levels.length ? ` With the weights in force, no AI system or AI asset can reach ${inForce.names}: see Risk levels below.` : "";
+    const restore = edit && !isDefault && !S.riskScoringIsDefault(stSc) ? `<button type="button" class="btn btn-sm" data-action="rs-restore">Restore product default</button>` : "";
+    const summary = C.card(`Risk scoring, version ${cur.version}`, `<p>${lead}${U.esc(lead2)}</p>${edit ? "" : `<p class="small muted">Read-only. ${U.esc(p.reason)}</p>`}`, { action: restore });
+    const publish = problem
+      ? `<span class="btn-disabled-wrap"><button type="button" class="btn btn-primary is-disabled" disabled>${I.check} Publish changes…</button><span class="btn-reason">${U.esc(problem)}</span></span>`
+      : `<button type="button" class="btn btn-primary" data-action="rs-publish">${I.check} Publish changes…</button>`;
+    const bar = staged ? `<div class="pending-bar"><div class="pending-text">${I.flag}<span><strong>${changes.length} ${U.plural(changes.length, "change")} staged.</strong> ${problem ? "Correct the risk levels before publishing." : rsImpact(prev)}${wouldBe && wouldBe.levels.length ? ` It leaves ${U.esc(wouldBe.names)} out of reach.` : ""}</span></div><div class="btn-row"><button type="button" class="btn btn-secondary" data-action="rs-discard">Discard</button>${publish}</div></div>` : "";
+    const wOpts = S.RISK_WEIGHTS.map(([v, l]) => ({ value: v, label: l }));
+    const rows = S.RISK_MODEL.factors.map((f) => {
+      const was = S.riskWeightOf(f.key, cur), w = edit ? S.riskWeightOf(f.key, st) : was, cap = S.riskFactorCap(f.key, edit ? stSc : cur);
+      const note = w !== was ? `<div class="small"><span class="tag tag-pending rs-tag">Staged</span> was ${U.esc(S.riskWeightLabel(was))}</div>` : w !== "standard" ? `<div class="small muted">Product default: Standard</div>` : "";
+      const control = edit ? C.select("rsWeight", wOpts, w, `data-key="${f.key}" aria-label="Weight of ${U.esc(f.label)}"`) : `<span class="strong">${U.esc(S.riskWeightLabel(w))}</span>`;
+      return `<tr${w === "off" ? ' class="rs-off"' : ""}><td><div class="strong">${U.esc(f.label)}</div><div class="small muted">${U.esc(f.what)}</div><div class="small rs-points">${U.esc(S.riskFactorPoints(f.key, edit ? stSc : cur))}</div></td><td>${control}${note}</td><td class="num">${w === "off" ? '<span class="muted">Not counted</span>' : cap}${w !== "standard" && w !== "off" ? `<div class="small muted">${f.cap} at Standard</div>` : ""}</td></tr>`;
+    }).join("");
+    const factors = C.card("Factors", `<p class="small muted rs-key">In each row, &ldquo;it&rdquo; is the AI system or AI asset being scored. Points are added to its risk score, never to an interaction or to a person.</p><table class="tbl rs-grid"><thead><tr><th>Factor, and the points it adds</th><th>Weight</th><th class="num">Most it can add</th></tr></thead><tbody>${rows}</tbody></table><p class="small muted">Each row shows the points that count at the weight selected. Lower counts a factor about half as much as Standard, Higher about one and a half times as much, and Off leaves it out; points are always whole numbers. A business group's score is its riskiest AI system or AI asset, plus points for the group's own two gaps: no active accountable owner, and no reviewer with access. Those two follow the Accountable owner and Review coverage weights.</p>`);
+    const ranges = S.riskLevelRanges(edit ? stSc : cur).map(([b, lo, hi]) => `<span class="rs-range"><span class="risk-badge risk-${b.toLowerCase()}"><span>${b}</span></span>${hi >= 100 ? `${lo} and above` : `${lo} to ${hi}`}</span>`).join("");
+    const inputs = edit ? `<div class="rs-levels">${RS_LEVELS.map((k) => { const v = st.thresholds[k], was = cur.thresholds[k]; return `<label class="rs-level"><span>${k} starts at</span><input type="number" class="inp rs-num" name="rsLevel" data-level="${k}" min="1" max="100" step="1" value="${Number.isFinite(v) ? v : ""}"/>${v !== was ? `<span class="small"><span class="tag tag-pending rs-tag">Staged</span> was ${was}</span>` : was !== defaults[k] ? `<span class="small muted">Product default: ${defaults[k]}</span>` : ""}</label>`; }).join("")}</div>` : "";
+    const out = problem ? "" : S.riskUnreachableText(edit ? stSc : cur, edit && staged ? "With these weights" : "With the weights in force");
+    const outLevels = S.riskUnreachable(edit ? stSc : cur).levels;
+    const outFix = out && edit ? ` Raise a weight, or lower where ${outLevels.length === 1 ? outLevels[0] + " starts" : "they start"}.${staged ? " You can still publish." : ""}` : "";
+    const levels = C.card("Risk levels", `${inputs}${problem ? `<p class="small danger-text">${U.esc(problem)}</p>` : `<div class="rs-ranges">${ranges}</div>`}${out ? `<div class="notice notice-warn rs-out">${I.alert}<span>${U.esc(out)}${U.esc(outFix)}</span></div>` : ""}<p class="small muted">A High or Critical risk level at approval or reconfirmation sets a reconfirmation cadence of ${S.cadenceForBand("High")} months; Low or Moderate sets ${S.cadenceForBand("Low")}.</p>`);
+    let preview = "";
+    if (prev) {
+      const list = ui.riskAll ? prev.moved : prev.moved.slice(0, 8), rest = prev.changed.length - prev.moved.length;
+      const up = (x) => RS_ORDER.indexOf(x.a.band) > RS_ORDER.indexOf(x.b.band);
+      const tbl = prev.moved.length ? `<table class="tbl rs-prev"><thead><tr><th>Name</th><th>Business group</th><th>Now</th><th>After publishing</th></tr></thead><tbody>${list.map((x) => `<tr><td><div class="strong">${U.esc(x.a.name)}</div><div class="small muted">${U.esc(x.a.type)}</div></td><td>${x.a.kind === "group" ? '<span class="muted">—</span>' : x.a.groupId ? U.esc(S.groupName(x.a.groupId)) : '<span class="muted">All groups</span>'}</td><td>${C.riskPill(x.b)}</td><td>${C.riskPill(x.a)} <span class="small ${up(x) ? "danger-text" : "ok-text"}">${up(x) ? "Up" : "Down"}</span></td></tr>`).join("")}</tbody></table>${prev.moved.length > 8 && !ui.riskAll ? `<button type="button" class="link-btn" data-action="rs-show-all">Show all ${prev.moved.length}</button>` : ""}` : "";
+      preview = C.card("What changes if you publish", `<p>${rsImpact(prev)}${prev.moved.length && rest > 0 ? ` ${rest} more ${U.plural(rest, "score changes", "scores change")} without changing risk level.` : ""}</p>${tbl}`, { cls: "rs-preview" });
+    }
+    const hist = cur.history.slice().reverse().map((h) => { const who = h.byMemberId ? S.member(h.byMemberId) : null; return `<li><span class="strong">Version ${h.version}</span>${h.date ? ` · ${U.fmtDate(h.date)}` : ""}${who ? ` · ${U.esc(who.displayName)}` : ""}${h.productDefault ? ` · ${h.version === 1 ? "Product default" : "Product default restored"}` : ""}<div class="small muted">${h.version === 1 ? `Every factor at its standard weight; the risk levels start at ${defaults.Moderate}, ${defaults.High} and ${defaults.Critical}.` : `${U.esc(rsDot(h.note))}${h.changes && h.changes.length ? ` (${h.changes.map(U.esc).join("; ")})` : ""}`}</div></li>`; }).join("");
+    const versions = C.card("Versions", `<p class="small muted">A registration's cadence keeps the risk level it was set from. The movement a Risk card shows over 30 days compares both dates under the scoring in force today, so a change here never shows as movement.</p><ul class="plain-list fq-hist">${hist}</ul>`);
+    return `${bar}${summary}${factors}${levels}${preview}${versions}`;
+  }
+  P.riskPublishDialog = function () {
+    const cur = S.riskScoring(), st = rsStaged(), stSc = Object.assign({}, cur, st), changes = S.riskScoringChanges(st, cur), prev = rsPreview(st), v = cur.version + 1, toDefault = S.riskScoringIsDefault(stSc);
+    if (!changes.length || rsProblem(st.thresholds)) return;
+    C.modal({ title: `Publish risk scoring, version ${v}`, size: "modal-lg", body: `<p>Publishing takes effect at once: every risk score is recomputed on its next view.${toDefault ? " This restores the product default." : ""}</p>
+        <ul class="rs-changes">${changes.map((c) => `<li>${U.esc(c.text)}</li>`).join("")}</ul>
+        ${S.riskUnreachableText(stSc) ? `<div class="notice notice-warn">${I.alert}<span>${U.esc(S.riskUnreachableText(stSc))} You can still publish.</span></div>` : ""}
+        <div class="notice notice-info">${I.info}<span>${rsImpact(prev)} A reconfirmation cadence already set does not move; the next approval or reconfirmation of a registration uses the risk level it has that day.</span></div>
+        ${C.field("Change note", `<textarea class="inp" name="note" rows="2" placeholder="Required. What changed and why; recorded on the version and in Audit History."></textarea>`)}`,
+      footer: `<button type="button" class="btn btn-secondary" data-modal-close>Cancel</button><button type="button" class="btn btn-primary" data-action="do-publish">${I.check} Publish version ${v}</button>`,
+      onOpen(wrap) {
+        C.guard(wrap, () => !!val(wrap, "note"), "Enter the change note first.", "[data-action='do-publish']");
+        wrap.querySelector("[data-action='do-publish']").addEventListener("click", () => {
+          if (!val(wrap, "note")) return;
+          const res = S.publishRiskScoring(st, val(wrap, "note"));
+          ui.risk = null; ui.riskAll = false;
+          C.closeModal(); AGC.router.refresh();
+          setTimeout(() => AGC.shell.toast(`Risk scoring, version ${res.version} published. Every score follows on its next view. Recorded in Audit History.`, "success"), 30);
+        });
+      } });
+  };
+
   P.render = function (view) {
     if (view && view !== ui.view) { ui.view = view; }
     const nav = AGC.shell.navMeta("rules");
@@ -84,15 +181,16 @@
     const p = perm();
     const create = p.allowed ? `<button type="button" class="btn btn-primary btn-sm" data-action="rule-create">${I.rules} Create rule</button>` : `<span class="btn-disabled-wrap"><button type="button" class="btn btn-primary btn-sm is-disabled" disabled>${I.rules} Create rule</button><span class="btn-reason">${U.esc(p.reason)}</span></span>`;
     const toolbar = `<div class="toolbar reg-toolbar">
-        <div class="filter-chips">${[["rules", `Rules <span class="count-badge">${all.length}</span>`], ["matrix", "Permitted data by business group"]].map(([k, l]) => `<button type="button" class="fchip${ui.view === k ? " active" : ""}" data-action="rule-view" data-view="${k}">${l}</button>`).join("")}</div>
+        <div class="filter-chips">${[["rules", `Rules <span class="count-badge">${all.length}</span>`], ["matrix", "Permitted data by business group"], ["risk", "Risk scoring"]].map(([k, l]) => `<button type="button" class="fchip${ui.view === k ? " active" : ""}" data-action="rule-view" data-view="${k}">${l}</button>`).join("")}</div>
         ${rules ? C.select("ruleFamily", [{ value: "all", label: "All families" }].concat(FAMILIES.map((f) => ({ value: f, label: f }))), ui.family) : ""}
         ${rules ? C.select("ruleGroup", [{ value: "all", label: "All business groups" }].concat(S.groupsOrdered().map((g) => ({ value: g.id, label: `Rules that apply to ${g.name}` }))), ui.group) : ""}
         ${rules ? `<input type="search" id="ruleSearch" class="inp toolbar-search" placeholder="Search rules, sensitive data, groups or the regulatory basis" value="${U.esc(ui.search)}"/>` : ""}
         <span class="toolbar-spacer"></span>
         <button type="button" class="btn btn-sm" data-action="rule-export">${I.list} Export</button>
-        ${create}
+        ${ui.view === "risk" ? "" : create}
       </div>`;
-    AGC.shell.render({ kind: "list", navKey: "rules", title: nav.title, description: nav.description, icon: "rules", html: `${rules ? tiles : ""}${toolbar}${rules ? rulesHtml(all) : matrixHtml()}`, after: P.after });
+    const risk = ui.view === "risk";
+    AGC.shell.render({ kind: "list", navKey: "rules", title: nav.title, description: risk ? RS_DESCRIPTION : nav.description, icon: "rules", html: `${rules ? tiles : ""}${toolbar}${rules ? rulesHtml(all) : risk ? riskHtml() : matrixHtml()}`, after: P.after });
   };
 
   /* ---------- The rule page ---------- */
@@ -244,15 +342,22 @@
   /* ---------- Behaviour ---------- */
   P.after = function (root) {
     const rerender = () => AGC.router.refresh();
+    /* A redraw returns the page to its top. On the Risk scoring view the control the reader just used stays where it was, although the
+       staged bar may have appeared above it. */
+    const keepPlace = (el, selector, focus) => { const top = el.getBoundingClientRect().top; rerender(); const n = document.querySelector(selector); if (n) { window.scrollTo(0, window.scrollY + n.getBoundingClientRect().top - top); if (focus) n.focus({ preventScroll: true }); } };
     root.addEventListener("click", (ev) => {
       const t = ev.target.closest("[data-rule-action], [data-action]");
       if (!t) return;
       if (t.dataset.ruleAction) { if (!t.disabled) P.act(t.dataset.ruleAction, S.rule(t.dataset.id)); return; }
       switch (t.dataset.action) {
         case "rule-tile": { const k = t.dataset.tile; if (k === "all" || ui.tile === k) { ui.tile = "all"; ui.family = "all"; ui.group = "all"; ui.search = ""; } else ui.tile = k; rerender(); break; }
-        case "rule-view": AGC.router.navigate(t.dataset.view === "matrix" ? "#/rules/matrix" : "#/rules"); break;
-        case "rule-export": AGC.shell.toast(ui.view === "matrix" ? "Exports the matrix as CSV: every business group with what it may and may not put into AI, and the rules behind each cell." : "Exports the rules as CSV: every rule with its sensitive data, where it is permitted, severity, basis, version and its findings in the period."); break;
+        case "rule-view": AGC.router.navigate(t.dataset.view === "matrix" ? "#/rules/matrix" : t.dataset.view === "risk" ? "#/rules/risk" : "#/rules"); break;
+        case "rule-export": AGC.shell.toast(ui.view === "risk" ? "Exports the risk scoring as CSV: every factor with its weight and the most it can add, the risk levels, and every version with its note." : ui.view === "matrix" ? "Exports the matrix as CSV: every business group with what it may and may not put into AI, and the rules behind each cell." : "Exports the rules as CSV: every rule with its sensitive data, where it is permitted, severity, basis, version and its findings in the period."); break;
         case "rule-create": P.createWizard(); break;
+        case "rs-discard": ui.risk = null; ui.riskAll = false; AGC.shell.toast("Staged changes discarded.", "info"); rerender(); break;
+        case "rs-restore": rsSet({ weights: {}, thresholds: S.riskDefaultThresholds() }); rerender(); break;
+        case "rs-publish": P.riskPublishDialog(); break;
+        case "rs-show-all": { const tbl = root.querySelector(".rs-prev"); ui.riskAll = true; if (tbl) keepPlace(tbl, ".rs-prev"); else rerender(); break; }
         default: break;
       }
     });
@@ -260,6 +365,8 @@
       const el = ev.target;
       if (el.name === "ruleFamily") { ui.family = el.value; rerender(); }
       else if (el.name === "ruleGroup") { ui.group = el.value; rerender(); }
+      else if (el.name === "rsWeight") { const st = rsStaged(); st.weights[el.dataset.key] = el.value; rsSet(st); keepPlace(el, `select[name="rsWeight"][data-key="${el.dataset.key}"]`, true); }
+      else if (el.name === "rsLevel") { const st = rsStaged(); st.thresholds[el.dataset.level] = el.value.trim() === "" ? NaN : Math.round(Number(el.value)); rsSet(st); keepPlace(el, `input[name="rsLevel"][data-level="${el.dataset.level}"]`); }
     });
     const s = root.querySelector("#ruleSearch"); if (s) s.addEventListener("input", U.debounce(() => { ui.search = s.value; const pos = s.selectionStart; rerender(); const s2 = document.querySelector("#ruleSearch"); if (s2) { s2.focus(); s2.setSelectionRange(pos, pos); } }, 220));
   };

@@ -34,6 +34,7 @@
       case "/systems/:id/interactions": return "ai-asset-interactions";
       case "/rules": return "rules-list";
       case "/rules/matrix": return "permitted-data";
+      case "/rules/risk": return "risk-scoring";
       case "/rules/:id": return "rule-page";
       case "/audit": return "audit-history";
       case "/settings/:page?": return { instances: "ai-systems", groups: "business-groups", mapping: "business-group-mapping", notifications: "notifications", access: "readiness-check" }[p.page] || "settings";

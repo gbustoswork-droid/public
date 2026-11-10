@@ -54,6 +54,7 @@
       case "escalation": { const x = S.byId.escalation[id]; if (!x) return null; const sys = x.aiSystemId && S.system(x.aiSystemId); return sys ? { name: sys.name, href: `#/approvals/${id}` } : { name: "the escalation", href: `#/approvals/${id}`, append: true }; }
       case "finding": return S.byId.finding[id] ? { name: "the finding", href: `#/findings/all/${id}`, append: true } : null;
       case "mapping": return S.can("settings") ? { name: "Business Group Mapping", href: "#/settings/mapping", append: true } : null;
+      case "riskScoring": return { name: "Risk scoring", href: "#/rules/risk", append: true };
       default: return null;
     }
   }

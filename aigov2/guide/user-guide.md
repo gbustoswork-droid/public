@@ -56,7 +56,7 @@ Reviewers and approvers are separate roles. A reviewer decides whether a finding
 - **Finding.** Something an AI Policy Rule flagged in an interaction, such as a card number in a prompt. A finding becomes a **violation** only when a reviewer confirms it. A dismissed finding counts for nothing.
 - **Registration.** The record that says an AI system or AI asset is approved for use, who is accountable for it, and what it is approved to do. The accountable owner **reconfirms** it on a schedule so the approval never goes stale.
 - **Accountable owner.** The person who answers for a business group, an AI system or a registered AI asset.
-- **Risk score.** A number from 0 to 100, worked out from the facts on record, that says where attention is needed first. See [Risk scores](#risk-scores).
+- **Risk score.** A number from 0 to 100, worked out from the facts on record, that says where attention is needed first. Its **risk level** is the name of the range it falls in: Low, Moderate, High or Critical. See [Risk scoring](#risk-scoring).
 
 ## Overview {#overview}
 
@@ -87,7 +87,7 @@ The Overview holds:
 - **Governance**, **Accountable owner** and **Reviewer access**, the three facts that make a group ready.
 - **AI in the group:** how many GPTs, Projects, Plugins and custom AI applications it has, which are registered individually, and any GPT built outside your workspace that its people use.
 - **What the group uses AI for**, the same ten categories as the Overview, for this group.
-- **Risk**, the group's score and the items driving it. See [Risk scores](#risk-scores).
+- **Risk**, the group's score and the items driving it. See [Risk scoring](#risk-scoring).
 - **Members**, with the most relevant people first, and **Business Group Mapping**, the departments that feed this group.
 
 ### AI assets {#group-ai-assets}
@@ -254,7 +254,7 @@ The header names the AI system or AI asset, its status and what it is. The cards
 - **Registration:** the owner, the business group, the approved purpose, the kinds of sensitive data it is permitted to handle, the approval with its due date and anything blocking it, how often it must be reconfirmed, and how its interactions are archived.
 - **The AI asset as Archive360 archived it**, for a GPT, Project or Plugin, with a link to its page. A platform's registration shows instead the apps, plugins and custom Actions its administrator enabled.
 - **Evidence packages**, see below.
-- **Risk**, see [Risk scores](#risk-scores).
+- **Risk**, see [Risk scoring](#risk-scoring).
 - **Who can review its activity**, the reviewers whose policies cover the group.
 - **Decision history**, every registration, approval, reconfirmation, suspension and retirement, with who and when.
 
@@ -285,7 +285,7 @@ Everything Archive360 archived about one GPT, Project or Plugin. It is for readi
 
 - **Configuration**, with a Current view and a Change history. For a GPT: description, instructions, conversation starters, recommended model, knowledge files (click one to preview it), capabilities, and the apps it uses or the Actions it calls, each Action with its operations and whether it asks the person first. For a Project: memory type, instructions, files, pasted text sources and linked sources. For a Plugin: its skills, apps and MCP servers. The Change history is a dated list of every change, newest first, with what changed in plain words.
 - **Shared with:** who can use it, as the last sync found it: the creator, the whole workspace, named people and platform groups.
-- **Risk**, see [Risk scores](#risk-scores).
+- **Risk**, see [Risk scoring](#risk-scoring).
 - **AI asset details:** type, platform and workspace, business group, creator, created date, status in the platform, and its approval.
 - **Activity:** interactions in total and in the last 30 days, the last activity, the split by business group, the apps used and Actions called, and the people who used it. Open the interactions goes to its conversations.
 
@@ -297,7 +297,7 @@ The same two-part view as a group's Interactions page, limited to one AI asset, 
 
 ## AI Policy Rules {#ai-policy-rules}
 
-The rulebook: the rules that decide when sensitive data in an AI interaction is a violation, what each one detects, where that data is allowed, how serious a violation is, which regulation or policy it rests on, how each rule performs, and how it has changed. Everyone with a governance role can read it; Compliance and the Administrator can change it. A finding always keeps the version of the rule it was judged under, so changing a rule never rewrites history.
+The rulebook: the rules that decide when sensitive data in an AI interaction is a violation, what each one detects, where that data is allowed, how serious a violation is, which regulation or policy it rests on, how each rule performs, and how it has changed. Everyone with a governance role can read it; Compliance and the Administrator can change it. A finding always keeps the version of the rule it was judged under, so changing a rule never rewrites history. The same tab holds the Risk scoring view, where the weights behind the risk score are set. It is described under [Risk scoring](#risk-scoring), with an example of how a score adds up.
 
 ### Rules {#rules-list}
 
@@ -385,13 +385,67 @@ The last step before governance runs: a read-only check that every group has an 
 - **Tiles:** All groups, Ready, No reviewer has access, No active owner.
 - **The table:** each group with its owner, the reviewers with access, Ready or Not ready, and for each gap the reason and where to fix it: owners on the Business Groups page, reviewer access in Archive360 Administration.
 
-## Risk scores {#risk-scores}
+## Risk scoring {#risk-scoring}
 
-A risk score says where attention is needed first. It is a number from 0 to 100, worked out from the facts on record, and recomputed every time a page is drawn. It is a priority, not a verdict.
+A risk score says where attention is needed first. It is a number from 0 to 100, worked out from the facts on record, and recomputed every time a page is drawn. It is a priority, not a verdict. This section explains how a score adds up, with an example, and how the weights behind it are changed on the Risk scoring view of AI Policy Rules.
+
+### How a score is worked out {#how-a-score-is-worked-out}
+
+1. Archive360 scores one AI system or AI asset at a time. A person never has a score, and neither does a single interaction.
+2. It checks eleven factors. Each factor looks at one kind of fact, such as the violations a reviewer confirmed, or whether an approval has expired.
+3. A factor that finds nothing adds 0. A factor that finds something adds points, up to a limit of its own, so no single factor can carry the whole score.
+4. The points of all the factors are added together. That total is the risk score, and it never goes above 100.
+5. The score falls into a risk level: Low below 25, Moderate from 25, High from 50 and Critical from 75, unless your organization has moved where they start.
+
+### An example {#risk-score-example}
+
+This example is made up, to show the arithmetic. Access Request Helper is a GPT in the Information Technology business group. The service desk uses it to answer requests for access to systems. It has its own registration on the AI Registry, and every factor is at its Standard weight.
+
+:::score
+Confirmed violations, 90 days | In the last 90 days a reviewer confirmed three violations in its interactions, by three different people: one Critical, one High and one Medium. | 10 + 6 + 3 | 19
+Sensitive data handled, 90 days | Two kinds of sensitive data were found in its interactions, which adds 2 for each kind. Five interactions carried sensitive data, which adds 1 for each: the three with violations, and two with findings still awaiting review. | 4 + 5 | 9
+Approval | Its approval has expired, because nobody reconfirmed it in time. | 15 | 15
+Accountable owner | Its accountable owner is on leave. | 10 | 10
+Configuration drift | A knowledge file was added after it was last approved. This counts once, however many changes there were. | 5 | 5
+Reach | Everyone in the workspace can use it. | 4 | 4
+Review coverage | Reviewers have access to Information Technology's activity. | | 0
+Open remediation | No escalation about it is unfinished. | | 0
+Recurring conduct | Nobody has three or more confirmed violations on it. | | 0
+Review backlog | The two findings awaiting review have waited less than 30 days. | | 0
+Origin | It was built inside your workspace. | | 0
+:::
+
+Information Technology's own score is 62 as well. A business group scores as its riskiest AI system or AI asset, plus points for the group's own two gaps: no active accountable owner, and no reviewer with access. Information Technology has neither gap, and nothing in it scores higher than Access Request Helper.
+
+### What changes a score {#what-changes-a-score}
+
+A score moves when the facts move. Three things that could happen to the example:
+
+| What happens | What it does to the factors | New score | Risk level |
+|---|---|---|---|
+| The two findings awaiting review are confirmed as Critical violations. | Confirmed violations would be 19 + 10 + 10 = 39, but the factor stops at its limit of 30. That is 11 more points. | 62 + 11 = 73 | High |
+| A new accountable owner is named and reconfirms the registration. | Accountable owner, Approval and Configuration drift stop adding points. That is 10 + 15 + 5 = 30 fewer points. | 62 − 30 = 32 | Moderate |
+| The weight of Confirmed violations is set to Lower. | A Critical violation then adds 5, a High 3 and a Medium 2. The factor adds 5 + 3 + 2 = 10 where it added 19, which is 9 fewer points. | 62 − 9 = 53 | High |
+
+A score also falls by itself as time passes. A confirmed violation stops counting 90 days after it was detected, so the example loses 10 points on the day its Critical violation becomes too old.
+
+### Changing the weights and risk levels {#changing-risk-scoring}
+
+This is done on the Risk scoring view of the AI Policy Rules tab. It sets how much each factor counts and the score at which each risk level starts. Everyone with a governance role can read it; Compliance and the Administrator can change it.
+- **Factors:** the eleven factors of the risk score. Each row says in a sentence what the factor is, then the points it adds, its weight and the most it can add. A weight is Off, Lower, Standard or Higher: Lower counts the factor about half as much as Standard, Higher about one and a half times as much, and Off leaves it out. The points shown are always the ones that count at the weight selected, in whole numbers, and they change as you change the weight. The factors themselves are fixed.
+- **Risk levels:** the scores at which Moderate, High and Critical start.
+- **Staging a change:** choose a weight or type a new starting score and the change is staged, not applied. The page then shows what would change: every AI system, AI asset and business group whose risk level would move, with its score now and after publishing. Discard drops what is staged.
+- **Publish changes** asks for a note saying what changed and why, and publishes a new version at once. Every score follows on its next view, and the change is recorded in Audit History. A reconfirmation schedule that is already set does not move; the next approval or reconfirmation uses the risk level of that day.
+- **A risk level out of reach:** no AI system or AI asset can score more than its factors' limits added together. If your weights make that total smaller than the score where a risk level starts, nothing could ever reach that level. The page says so and names the level. It is a warning, and you can still publish.
+- **Restore product default** stages the scoring the product ships with: every factor at Standard, and the risk levels starting at 25, 50 and 75.
+- **Versions:** every version, newest first, with its note and what changed.
+
+> Example: an organization whose examiners care most about accountability sets Accountable owner to Higher. Before publishing, the page lists the AI assets whose risk level would rise because their owner has left.
+
+### Where scores appear {#where-scores-appear}
 
 - **Where you see it:** a pill on the Groups cards and grid and on the Overview's table; a Risk column on the AI Registry and on a group's AI assets page; and a Risk card on a registration's page, an AI asset's page and a group's Overview.
-- **The bands:** Low below 25, Moderate from 25, High from 50, Critical from 75.
-- **What counts:** confirmed violations in the last 90 days, by severity; the kinds and amount of sensitive data handled in the last 90 days; an approval that is expired, suspended, rejected or still pending; an owner who is missing or not active; no reviewer with access; configuration changes since the last approval; how widely it is shared and whether it calls outside systems; open remediations; people with repeated violations; findings waiting for review for more than 30 days; and a GPT built outside your workspace. Each has a ceiling, so no single fact carries the whole score. Dismissed findings and raw detections count nothing.
-- **The Risk card** shows the score, its movement over the last 30 days, and every factor with its points, what it rests on, and what would lower it. Click a factor to open its evidence. How risk is scored opens the full model.
-- **A group's score** is its riskiest AI asset or system plus the group's own gaps.
-- **Reconfirmation follows the score:** at approval or reconfirmation, the schedule is set from the band at that moment, six months for High and Critical, twelve otherwise, and stays fixed until the next reconfirmation.
+- **The Risk card** shows the score, its risk level, its movement over the last 30 days, and every factor that adds points, with what it rests on and what would lower it. Click a factor to open its evidence. How risk is scored lists all eleven factors with the points each can add.
+- **The eleven factors:** confirmed violations in the last 90 days, by severity; the kinds and amount of sensitive data handled in the last 90 days; an approval that is expired, suspended, rejected or still pending; an owner who is missing or not active; no reviewer with access; configuration changes since the last approval; how widely it is shared and whether it calls outside systems; unfinished escalations; people with repeated violations; findings waiting for review for more than 30 days; and a GPT built outside your workspace. Dismissed findings add nothing.
+- **The version in force** is named on the Risk card. The weights and the risk levels are changed as described under [Changing the weights and risk levels](#changing-risk-scoring).
+- **Reconfirmation follows the risk level:** at approval or reconfirmation, the schedule is set from the risk level at that moment, six months for High and Critical, twelve otherwise, and stays fixed until the next reconfirmation.
