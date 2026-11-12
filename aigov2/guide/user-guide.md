@@ -62,7 +62,7 @@ Reviewers and approvers are separate roles. A reviewer decides whether a finding
 
 The Overview is the landing page for everyone: the state of AI governance at a glance, with a link to wherever the work is done.
 
-- **Needs attention** lists what needs a decision or a fix across the whole business: findings waiting for review, escalations waiting for an approver, groups with no active owner or no reviewer, registrations waiting for approval or expired, reconfirmations due soon, open Unregistered AI items, and approved remediations waiting for their owners. Lines about your own work come first. If a group you own needs nothing, it says so.
+- **Needs attention** lists what needs a decision or a fix across the whole business: findings waiting for review, escalations waiting for an approver, groups with no active owner or no reviewer, registrations waiting for approval or expired, reconfirmations due soon, open Unregistered AI items, and approved remediations that are not finished, each with its status. Lines about your own work come first. If a group you own needs nothing, it says so.
 - **The tiles** are facts that open the page behind them: business groups, people governed, registrations, AI assets and open Unregistered AI items.
 - **AI use by business group, last 30 days** ranks the groups by how much AI they used in the last month, with each group's risk score, interactions, confirmed violations, people using AI, AI assets and a few words on what needs attention. Numbers link to the page that shows the same number.
 - **What AI is used for, last 30 days** shows the ten things people use AI for, such as summarizing documents or drafting customer communications, with counts. Open a row to see which groups use AI for it.
@@ -82,7 +82,7 @@ Open a group and you land on its Overview. The breadcrumb row has a dropdown to 
 
 The Overview holds:
 
-- **Needs attention** for this group only: a missing or departed owner, no reviewer, findings waiting for review, registrations expired or due soon, escalations waiting, remediations waiting for the owner. Each line links to its fix.
+- **Needs attention** for this group only: a missing or departed owner, no reviewer, findings waiting for review, registrations expired or due soon, escalations waiting, and approved remediations that are not started or in progress. Each line links to its fix.
 - **Findings** in the chosen period: awaiting review, confirmed violations, dismissed, escalated.
 - **Governance**, **Accountable owner** and **Reviewer access**, the three facts that make a group ready.
 - **AI in the group:** how many GPTs, Projects, Plugins and custom AI applications it has, which are registered individually, and any GPT built outside your workspace that its people use.
@@ -193,7 +193,9 @@ For approvers and the Administrator: the escalated violations waiting for a deci
 - **Decision:** Approve the remediation, Reject as accepted risk (the violation stays confirmed, nothing changes), or Return to reviewer with what must be clarified. On an escalation about the AI system you can approve while downgrading it to the person's conduct, with a reason, if the system is not the problem. A Critical violation needs two approvers.
 - **Finding**, **Conversation**, **Approved purpose and instructions** and **History**, the same cards the reviewer saw.
 
-Once approved, the remediation becomes the owner's task and the registration stays suspended until the owner completes it and reconfirms. The owner is told immediately when a registration's status changes.
+Once approved, the remediation exists and its status is Not started. It is the owner's to carry out, and the registration stays suspended until the owner completes it and reconfirms. From then on the escalation shows the remediation's status. The owner is told immediately when a registration's status changes.
+
+If the registration was retired while the escalation was waiting, the escalation stays in this queue until an approver decides it, and the page says who retired the registration and when. Approving it then records your decision and closes the remediation by retirement at once, because the approved change will not be made. If the person's use is the problem, downgrade it to conduct and the remediation goes to the owner.
 
 ### Approving an AI system {#approving-an-ai-system}
 
@@ -201,7 +203,21 @@ A new AI system arrives here as a registration waiting for approval. The page sh
 
 ### The owner's remediation {#owner-remediation}
 
-An approved remediation waits for the accountable owner in three places: the Needs attention strip of their group, the registration's page, which opens with a Remediation card, and the finding itself. **Started** records that work has begun, with an optional note. **Complete the remediation** records what was done and, for a suspended registration, reconfirms it in the same step, which lifts the suspension. The person whose own use of AI the finding was about can never complete it; Compliance or the Administrator can complete it on an owner's behalf, but only the owner reconfirms.
+A remediation is the change an approver approved. It exists from the moment the escalation is approved, and it always has one of four statuses:
+
+| Status | What it means | How it gets there |
+|---|---|---|
+| **Not started** | Approved, and nobody has recorded any work yet. | The approvers approve the escalation. |
+| **In progress** | Someone recorded that work has begun. | **Start the remediation**, with an optional note. This step can be skipped. |
+| **Completed** | The change was made, and someone recorded what was done. | **Complete the remediation**, which requires a note saying what was done. |
+| **Closed by retirement** | The registration was retired before the change was made, so the change was never made. | **Retire** on the registration, with its reason, whether that happens after the approval or before it. |
+
+A remediation that is Not started or In progress waits in three places: the Needs attention strip of the group, the registration's page, which opens with a Remediation card, and the finding itself. Each shows the same status in the same words, with who it waits for, who started it and when, or who completed it and what was done.
+
+- **Start the remediation** records that work has begun. Use it so that the approver and Compliance can see it has been picked up.
+- **Complete the remediation** records what was done and, for a suspended registration, reconfirms it in the same step, which lifts the suspension.
+- **Retiring instead:** if the AI system is no longer needed, retire its registration. The remediation is then Closed by retirement, never Completed, because the approved change was not made.
+- **Who can do it:** the accountable owner. Compliance or the Administrator can start or complete it on the owner's behalf, but only the owner reconfirms. The person whose own use of AI the finding was about can never complete it; in that case it waits for Compliance or an Administrator, and the page says so.
 
 ## Unregistered AI {#unregistered-ai}
 
@@ -250,7 +266,7 @@ Every GPT, Project and Plugin Archive360 discovered, grouped by business group, 
 
 The header names the AI system or AI asset, its status and what it is. The cards:
 
-- **Remediation**, only while an approved remediation waits for the owner, with Started and Complete the remediation.
+- **Remediation**, only while an approved remediation is Not started or In progress: what must change, who approved it, its status, and Start the remediation and Complete the remediation. See [The owner's remediation](#owner-remediation).
 - **Registration:** the owner, the business group, the approved purpose, the kinds of sensitive data it is permitted to handle, the approval with its due date and anything blocking it, how often it must be reconfirmed, and how its interactions are archived.
 - **The AI asset as Archive360 archived it**, for a GPT, Project or Plugin, with a link to its page. A platform's registration shows instead the apps, plugins and custom Actions its administrator enabled.
 - **Evidence packages**, see below.
@@ -267,7 +283,7 @@ The buttons under the Registration card are the same actions as the list's menu.
 - **Approving** is an approver's decision, here or on Approvals. Rejecting needs a reason.
 - **Reconfirming** is the owner's check that the AI system or asset is still needed and still used for its approved purpose. It is available at any time, states the dates involved, and sets the next due date. The schedule is six months for a High or Critical risk score and twelve months otherwise, fixed at the time of approval or reconfirmation.
 - **Editing** changes the owner, purpose or permitted data of an individual registration.
-- **Retiring** records that it is no longer approved for use, with a reason. The owner or Compliance can retire.
+- **Retiring** records that it is no longer approved for use, with a reason. The owner or Compliance can retire. If an approved remediation on it is not finished, retiring closes that remediation as Closed by retirement. If an escalation about it is still waiting for an approver, retiring does not close the escalation: it stays in the approvers' queue.
 
 ### Evidence packages {#evidence-packages}
 

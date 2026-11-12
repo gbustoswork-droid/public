@@ -457,8 +457,9 @@
       if (reach) add("reach", reach, why.join(", "), hrefSelf, "Narrower sharing, or per-user authentication on its Actions.");
     }
     // 8. open remediation
-    const escs = D.escalations.filter((x) => (sys ? x.aiSystemId === sys.id : (e && x.registerEntryId === e.id)) && dayOf(x.escalatedAt) <= asOf && (!x.completedAt || dayOf(x.completedAt) > asOf) && (asOf >= U.today() ? ["Open", "Approved", "Returned"].includes(x.status) : x.status !== "Rejected"));
-    if (escs.length) add("remediation", wv("remediation", N("remediation").each) * escs.length, `${escs.length} ${U.plural(escs.length, "escalation")} open or waiting for the owner`, e ? `#/registry/${e.id}` : hrefFindings, "The owner completes the approved remediation and reconfirms.");
+    const escs = D.escalations.filter((x) => { const fin = x.completedAt || x.closedAt; return (sys ? x.aiSystemId === sys.id : (e && x.registerEntryId === e.id)) && dayOf(x.escalatedAt) <= asOf && (!fin || dayOf(fin) > asOf) && (asOf >= U.today() ? ["Open", "Approved", "Returned"].includes(x.status) : x.status !== "Rejected"); });
+    const escWords = () => { const c = {}; escs.forEach((x) => { const w = x.status === "Open" ? "awaiting an approver" : x.status === "Returned" ? "returned to the reviewer" : `remediation ${(S.remediationStatus(x) || "Not started").toLowerCase()}`; c[w] = (c[w] || 0) + 1; }); return Object.keys(c).map((w) => (escs.length === 1 ? w : `${c[w]} ${w}`)).join(", "); };
+    if (escs.length) add("remediation", wv("remediation", N("remediation").each) * escs.length, `${escs.length} unfinished ${U.plural(escs.length, "escalation")}${asOf >= U.today() ? `: ${escWords()}` : ""}`, e ? `#/registry/${e.id}` : hrefFindings, "The owner completes the approved remediation and reconfirms.");
     // 9. recurring conduct
     const recWin = (d) => { const n = daysBefore(dayOf(d), asOf); return n >= 0 && n < M.recurrenceDays; };
     const recFs = fs.filter((f) => f.statusAt === "Confirmed" && recWin(f.detectedAt)), byMember = U.countBy(recFs, "memberId");
@@ -920,7 +921,7 @@
     const e = S.escalation(id), p = state.persona, now = AGC.data.meta.now, f = S.finding(e.findingId);
     d = d || {};
     e.approvals.push({ approverMemberId: p.memberId, decision: "Approved", decidedAt: now, reasoning: d.note || "" });
-    let lifted = null;
+    let lifted = null, closedByRetirement = null;
     if (d.downgrade && e.target === "AI system") {
       /* The approver's call: the AI system is not the problem, this person's use of it is. The registration is no longer in question. */
       e.downgrade = { byMemberId: p.memberId, at: now, reason: d.downgradeReason || "", entryId: e.registerEntryId || null };
@@ -930,11 +931,20 @@
     }
     const given = e.approvals.filter((a) => a.decision === "Approved").length, done = given >= e.requiredApprovals;
     if (done) {
-      e.status = "Approved"; e.ownerTaskStatus = "Open"; e.approvedAt = now;
+      e.status = "Approved"; e.ownerTaskStatus = "Not started"; e.approvedAt = now;
       const en = e.registerEntryId ? S.entry(e.registerEntryId) : null;
-      if (en) decision(en, "Remediation approved", `${e.proposedRemediation} Stays suspended until the owner completes it and reconfirms.`, "escalation", e.escalationId);
+      if (en && en.status === "Retired") {
+        /* The registration was retired while the escalation waited. The escalation stays in the approvers' queue (Gabriel, 2026-11-12), so the
+           approval is recorded; and because a remediation on a retired registration is closed by retirement whichever came first, the
+           remediation this approval creates is closed at once: the approved change is not made, and the record says so. */
+        const rt = (en.decisionHistory || []).slice().reverse().find((h) => h.action === "Retired") || {};
+        e.status = "Completed"; e.ownerTaskStatus = "Closed by retirement"; e.closedAt = now; e.closedByMemberId = rt.actorMemberId || null; e.closedReason = rt.detail || ""; e.closedRetiredOn = rt.date || null;
+        closedByRetirement = en;
+        decision(en, "Remediation closed by retirement", `Approved after the retirement, so the approved change was not made: ${e.proposedRemediation}`, "escalation", e.escalationId);
+      } else if (en) decision(en, "Remediation approved", `${e.proposedRemediation} Stays suspended until the owner completes it and reconfirms.`, "escalation", e.escalationId);
     }
     escEvent(e, "Escalation approved", `${done ? "Approved" : `Approved (${given} of ${e.requiredApprovals}), waiting for another approver`}: ${e.target === "Conduct" ? "conduct" : "AI system"} remediation on ${escSubject(e)}${d.note ? " · " + d.note : ""}`, { approvals: `${given} of ${e.requiredApprovals}`, note: d.note || "", severity: f ? f.severity : null });
+    if (closedByRetirement) escEvent(e, "Remediation closed by retirement", `${closedByRetirement.name} had been retired before this approval, so the remediation was closed without the approved change.${e.closedReason ? ` Reason for retiring: ${e.closedReason}` : ""}`, { reason: e.closedReason || "" });
     if (lifted) notifyOwnerNow(e, `${lifted.name} is approved again; the escalation was downgraded to this person's conduct${done ? ", and the remediation is now theirs to complete" : ""}`);
     return e;
   };
@@ -973,25 +983,59 @@
     escEvent(e, "Escalation revised", `Revised and resubmitted for ${d.target === "Conduct" ? "conduct" : "AI system"} remediation: ${d.remediation}${d.note ? " · " + d.note : ""}`, { target: d.target, note: d.note || "" });
     return e;
   };
-  /* ---------- The owner's response (built 2026-09-28): an approved remediation is started, completed, or resolved by retiring ---------- */
-  const openTask = (e) => e.status === "Approved" && ["Open", "In progress"].includes(e.ownerTaskStatus || "Open");
-  S.ownerTasks = () => D.escalations.filter(openTask);
-  S.entryRemediation = (entryId) => D.escalations.find((e) => e.registerEntryId === entryId && openTask(e)) || null;
+  /* ---------- The owner's response (built 2026-09-28): an approved remediation is started, completed, or closed by retiring ---------- */
+  /* A remediation's four statuses (Gabriel, 2026-11-12: "Choose the best set of states to use that will be clear to a user. Ensure it is
+     all consistent."). A remediation exists from the moment the approvers approve an escalation. Not started: approved, and nobody has
+     recorded any work. In progress: someone recorded that work has begun. Completed: someone recorded what was done. Closed by retirement:
+     the registration was retired before the change was made, so the change was never made. "Open" is not one of them: it is the data value
+     of an escalation still awaiting an approver, and the everyday word for anything unfinished. Every screen takes the status, its words
+     and its sentence from these helpers, so no page can word it differently. The escalation's own data status stays Approved while the
+     remediation is Not started or In progress, and is Completed once the remediation is Completed or Closed by retirement. */
+  S.REMEDIATION_STATUSES = ["Not started", "In progress", "Completed", "Closed by retirement"];
+  S.remediationStatus = (e) => (!e || !["Approved", "Completed"].includes(e.status) ? null : S.REMEDIATION_STATUSES.includes(e.ownerTaskStatus) ? e.ownerTaskStatus : (e.status === "Completed" ? "Completed" : "Not started"));
+  S.remediationOpen = (e) => ["Not started", "In progress"].includes(S.remediationStatus(e));
+  /* Who it waits for: the accountable owner of the registration when the AI system must change, of the business group when a person's use must. */
+  S.remediationOwner = (e) => { const en = e && e.registerEntryId ? S.entry(e.registerEntryId) : null, g = e ? S.group(e.groupId) : null; return S.member(en ? en.ownerMemberId : (g ? g.ownerMemberId : null)) || null; };
+  /* Nobody completes a remediation about their own use of AI (separation of duties, 2026-09-28). When the finding is about the owner
+     themselves, the remediation therefore waits for Compliance or an Administrator, and every page says that instead of naming the owner. */
+  S.remediationOwnUse = (e) => { const o = S.remediationOwner(e), f = e ? S.finding(e.findingId) : null; return !!(o && f && f.memberId === o.memberId); };
+  S.REMEDIATION_OWN_USE = "Compliance or an Archive360 Administrator";
+  S.remediationApprovedAt = (e) => { const a = (e.approvals || []).filter((x) => x.decision === "Approved").slice(-1)[0]; return e.approvedAt || (a ? a.decidedAt : e.escalatedAt); };
+  /* The escalation in words: the approvers' decision until it is approved, the remediation's status from then on. */
+  S.escalationWord = (e) => ({ Open: "Awaiting approval", Returned: "Returned to the reviewer", Rejected: "Rejected as accepted risk" })[e.status] || `Remediation ${(S.remediationStatus(e) || e.status).toLowerCase()}`;
+  /* The remediation's status with its facts, as html: the status, its date and who; and what was recorded with it on a line of its own.
+     opt.owner replaces the owner's name (a link, or "you"). */
+  S.remediationLine = function (e, opt) {
+    opt = opt || {};
+    const st = S.remediationStatus(e); if (!st) return "";
+    const nm = (id) => { const m = id ? S.member(id) : null; return m ? U.esc(m.displayName) : ""; }, o = S.remediationOwner(e);
+    const owner = opt.owner || (o ? U.esc(o.displayName) : "the accountable owner"), en = e.registerEntryId ? S.entry(e.registerEntryId) : null;
+    const own = S.remediationOwnUse(e);
+    const main = st === "Not started" ? `Not started · waiting for ${own ? S.REMEDIATION_OWN_USE : owner} since ${U.fmtDate(S.remediationApprovedAt(e))}`
+      : st === "In progress" ? `In progress${e.startedAt ? ` since ${U.fmtDate(e.startedAt)}` : ""}${nm(e.startedByMemberId) ? `, started by ${nm(e.startedByMemberId)}` : ""}`
+      : st === "Completed" ? `Completed${e.completedAt ? ` ${U.fmtDate(e.completedAt)}` : ""}${nm(e.completedByMemberId) ? ` by ${nm(e.completedByMemberId)}` : ""}${e.reconfirmedAt ? ` · reconfirmed ${U.fmtDate(e.reconfirmedAt)}` : ""}`
+      : `Closed by retirement${e.closedAt ? ` ${U.fmtDate(e.closedAt)}` : ""}`;
+    const note = st === "Not started" ? (own ? `It is about ${owner}'s own use of AI, so ${owner} cannot complete it.` : "") : st === "In progress" ? U.esc(e.startNote || "") : st === "Completed" ? U.esc(e.completionNote || "")
+      : st === "Closed by retirement" ? `${en ? U.esc(en.name) : "The AI system"} was retired${e.closedRetiredOn ? ` on ${U.fmtDate(e.closedRetiredOn)}` : ""}${nm(e.closedByMemberId) ? ` by ${nm(e.closedByMemberId)}` : ""} before the approved change was made, so the change was not made.${e.closedReason ? ` Reason for retiring: ${U.esc(e.closedReason)}` : ""}` : "";
+    return `${main}${note ? `<div class="small muted">${note}</div>` : ""}`;
+  };
+  S.ownerTasks = () => D.escalations.filter(S.remediationOpen);
+  S.entryRemediation = (entryId) => D.escalations.find((e) => e.registerEntryId === entryId && S.remediationOpen(e)) || null;
   S.entryPendingEscalation = (entryId) => D.escalations.find((e) => e.registerEntryId === entryId && ["Open", "Returned"].includes(e.status)) || null;
   S.startRemediation = function (id, d) {
     const e = S.escalation(id), p = state.persona, now = AGC.data.meta.now; d = d || {};
     e.ownerTaskStatus = "In progress"; e.startedAt = now; e.startedByMemberId = p.memberId; e.startNote = d.note || "";
     const en = e.registerEntryId ? S.entry(e.registerEntryId) : null;
-    if (en) decision(en, "Remediation started", d.note || "The owner started the remediation.", "escalation", e.escalationId);
-    escEvent(e, "Remediation started", d.note || "The owner started the remediation.", { note: d.note || "" });
+    if (en) decision(en, "Remediation started", d.note || "Work on the remediation has begun.", "escalation", e.escalationId);
+    escEvent(e, "Remediation started", d.note || "Work on the remediation has begun.", { note: d.note || "" });
     return e;
   };
   /* Completing a remediation on a suspended registration and confirming the AI system is fit again are the same act for the owner
      (Gabriel, 2026-09-28: one dialog); someone completing it on the owner's behalf leaves the reconfirmation to the owner. */
   S.completeRemediation = function (id, d) {
-    const e = S.escalation(id), p = state.persona, now = AGC.data.meta.now, g = S.group(e.groupId); d = d || {};
+    const e = S.escalation(id), p = state.persona, now = AGC.data.meta.now; d = d || {};
     e.ownerTaskStatus = "Completed"; e.status = "Completed"; e.completedAt = now; e.completedByMemberId = p.memberId; e.completionNote = d.note || "";
-    const en = e.registerEntryId ? S.entry(e.registerEntryId) : null, owner = g && g.ownerMemberId === p.memberId;
+    const en = e.registerEntryId ? S.entry(e.registerEntryId) : null, owner = (S.remediationOwner(e) || {}).memberId === p.memberId;
     if (en) decision(en, "Remediation completed", d.note || "", "escalation", e.escalationId);
     escEvent(e, "Remediation completed", `${owner ? "Owner marked the remediation complete" : "Marked complete on the owner's behalf"}: ${d.note || ""}`, { note: d.note || "" });
     if (d.reconfirm && en && en.status === "Suspended") { S.reconfirmEntry(en.id, `After completing the remediation of the escalation of ${U.fmtDate(e.escalatedAt)}.`); e.reconfirmedAt = AGC.data.meta.now; }
@@ -1112,14 +1156,17 @@
   };
   S.reconfirm = (entryId) => S.reconfirmEntry(entryId, "");
   S.retireEntry = function (id, reason) {
-    const e = S.entry(id), sys = S.system(e.refId);
+    const e = S.entry(id);
     e.status = "Retired"; e.reconfirmationDueDate = null; decision(e, "Retired", reason);
-    /* Retiring is the other way out of a suspension: an open remediation on the registration is closed with the reason. */
-    D.escalations.filter((x) => x.registerEntryId === id && openTask(x)).forEach((x) => {
-      x.ownerTaskStatus = "Completed"; x.status = "Completed"; x.completedAt = AGC.data.meta.now; x.completedByMemberId = state.persona.memberId; x.resolution = "Retired"; x.completionNote = `Resolved by retiring ${e.name}: ${reason}`;
-      escEvent(x, "Remediation completed", `Resolved by retiring the AI system: ${reason}`, { resolution: "Retired" });
+    /* Retiring is the other way out of a suspension: a remediation on the registration that is not finished is closed by retirement, with
+       the reason. It is never called completed, because the approved change was not made (Gabriel, 2026-11-12). */
+    D.escalations.filter((x) => x.registerEntryId === id && S.remediationOpen(x)).forEach((x) => {
+      x.ownerTaskStatus = "Closed by retirement"; x.status = "Completed"; x.closedAt = AGC.data.meta.now; x.closedByMemberId = state.persona.memberId; x.closedReason = reason; x.closedRetiredOn = U.today();
+      decision(e, "Remediation closed by retirement", `The approved change was not made: ${x.proposedRemediation}`, "escalation", x.escalationId);
+      escEvent(x, "Remediation closed by retirement", `${e.name} was retired before the approved change was made, so the remediation was closed without it. Reason for retiring: ${reason}`, { reason });
     });
-    if (sys) sys.status = sys.status === "Active" ? "Retired" : sys.status;
+    /* Retiring changes the registration only. The AI asset keeps the status its platform reports (Active or Deleted; 2026-09-30):
+       Archive360 switches nothing off, so the asset is never shown as retired in ChatGPT Enterprise. */
     S.logAudit({ category: "Register", eventType: "Retired", groupId: e.groupId, refType: "register", refId: id, summary: `Retired: ${e.name} · ${reason}` });
     return e;
   };

@@ -59,12 +59,14 @@
   const siblings = (f) => S.visibleFindings().filter((y) => y.interactionId === f.interactionId && y.findingId !== f.findingId).sort((a, b) => a.turnNumber - b.turnNumber || a.detectedAt.localeCompare(b.detectedAt));
   const statusWord = (f) => (f.status === "Detected" ? "awaiting review" : f.status === "Confirmed" ? (f.escalationId ? "confirmed, escalated" : "confirmed") : "dismissed");
   const siblingsHtml = (f, links) => { const list = siblings(f); return list.length ? `<dt>Also on this interaction</dt><dd><ul class="plain-list">${list.map((y) => { const r = S.rule(y.ruleId), nm = U.esc(r ? r.name : y.ruleId); return `<li>${U.sevChip(y.severity)} ${links ? `<a href="#/findings/all/${y.findingId}">${nm}</a>` : `<button type="button" class="link-btn" data-fq="${y.findingId}">${nm}</button>`} <span class="muted">· turn ${y.turnNumber} · ${statusWord(y)}</span></li>`; }).join("")}</ul></dd>` : ""; };
-  const escStatusWord = (e) => ({ Open: "Awaiting approval", Returned: "Returned to the reviewer", Approved: "Approved; remediation with the owner", Rejected: "Rejected as accepted risk", Completed: "Remediation completed" })[e.status] || e.status;
+  const escStatusWord = (e) => S.escalationWord(e);
   function statusPill(f) {
     const e = f.escalationId ? S.escalation(f.escalationId) : null;
     if (f.status === "Detected") return `<span class="pill pill-pending">${I.clock}<span>Awaiting review</span></span>`;
     if (f.status === "Dismissed") return `<span class="pill pill-muted">${I.check}<span>Dismissed</span></span>`;
-    return `<span class="pill pill-danger">${I.alert}<span>Confirmed violation</span></span>${e ? `<span class="pill pill-pending">${I.flag}<span>Escalated · ${escStatusWord(e).toLowerCase()}</span></span>` : ""}`;
+    /* Amber while something waits; green once the remediation is completed; gray when it was rejected or closed by retirement (2026-11-12). */
+    const st = e ? S.remediationStatus(e) : null, cls = st === "Completed" ? "pill-ok" : (st === "Closed by retirement" || (e && e.status === "Rejected")) ? "pill-muted" : "pill-pending";
+    return `<span class="pill pill-danger">${I.alert}<span>Confirmed violation</span></span>${e ? `<span class="pill ${cls}">${st === "Completed" ? I.checkCircle : I.flag}<span>Escalated · ${escStatusWord(e).toLowerCase()}</span></span>` : ""}`;
   }
 
   /* ---------- The queue ---------- */
@@ -156,7 +158,7 @@
   /* A returned escalation waits for a reviewer who may escalate in that group; the one who escalated it may be away. */
   const canRevise = (f, esc) => !!esc && esc.status === "Returned" && S.can("escalate") && S.permission("review", { groupId: f.groupId, finding: f }).allowed;
   /* An approved remediation waits for the owner (or whoever may complete it on their behalf); a conduct remediation lives only here. */
-  const openTask = (esc) => !!esc && esc.status === "Approved" && ["Open", "In progress"].includes(esc.ownerTaskStatus || "Open");
+  const openTask = (esc) => S.remediationOpen(esc);
   const canRemediate = (esc) => openTask(esc) && S.permission("remediate", { entry: esc.registerEntryId ? S.entry(esc.registerEntryId) : null, escalation: esc }).allowed;
   function detailHtml(f) {
     if (!f) return C.card("Finding", C.emptyState("Choose a finding", "Pick a finding in the queue on the left to review it here, with the interaction it came from."));
@@ -221,20 +223,21 @@
         <dt>Proposed remediation</dt><dd>${U.esc(esc.proposedRemediation || "")}</dd>
         <dt>Escalated</dt><dd>${by ? U.esc(by.displayName) : ""}${esc.escalatedAt ? `, ${U.fmtDateTime(esc.escalatedAt)}` : ""}${esc.revision ? `<div class="small muted">Revised by ${U.esc((S.member(esc.revision.byMemberId) || {}).displayName || "the reviewer")} on ${U.fmtDate(esc.revision.at)}${esc.revision.note ? `: ${U.esc(esc.revision.note)}` : ""}</div>` : ""}</dd>
         <dt>Approvals</dt><dd>${given} of ${esc.requiredApprovals}${appr ? `<ul class="plain-list">${appr}</ul>` : ' · <span class="muted">none yet</span>'}</dd>
-        <dt>Status</dt><dd>${escStatusWord(esc)}${esc.ownerTaskStatus ? `<div class="small muted">Owner's remediation: ${esc.ownerTaskStatus === "Completed" ? `completed${esc.completedAt ? ` ${U.fmtDate(esc.completedAt)}` : ""}${esc.completionNote ? `: ${U.esc(esc.completionNote)}` : ""}${esc.reconfirmedAt ? ` · reconfirmed ${U.fmtDate(esc.reconfirmedAt)}` : ""}` : esc.ownerTaskStatus === "In progress" ? `in progress${esc.startedAt ? ` since ${U.fmtDate(esc.startedAt)}` : ""}${esc.startNote ? `: ${U.esc(esc.startNote)}` : ""}` : "waiting for the owner"}</div>` : ""}${link}</dd>
+        <dt>Status</dt><dd>${S.remediationStatus(esc) ? "Approved" : escStatusWord(esc)}${link}</dd>
+        ${S.remediationStatus(esc) ? `<dt>Remediation</dt><dd>${S.remediationLine(esc)}</dd>` : ""}
       </dl>${revise ? reviseFormHtml(f, esc) : ""}${ownerHtml(f, esc, entry)}`;
     }
     return `<dl class="kv kv-wide kv-detail">${rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("")}</dl>${escHtml}`;
   }
-  /* The owner's remediation (built 2026-09-28): its state, and the Started and Complete actions for whoever may take them. */
+  /* The remediation's actions (the owner's response, built 2026-09-28): Start and Complete, for whoever may take them. Its status is the
+     Remediation row above, in the same words as on every other page (2026-11-12). */
   function ownerHtml(f, esc, entry) {
     if (!openTask(esc)) return "";
-    const g = S.group(esc.groupId), owner = g ? S.member(g.ownerMemberId) : null, ownerName = owner ? U.esc(owner.displayName) : "the accountable owner";
-    const appr = (esc.approvals || []).filter((a) => a.decision === "Approved").slice(-1)[0], perm = S.permission("remediate", { entry: entry || null, escalation: esc });
-    const state = esc.ownerTaskStatus === "In progress" ? `In progress${esc.startedAt ? ` since ${U.fmtDate(esc.startedAt)}` : ""}${esc.startNote ? `: ${U.esc(esc.startNote)}` : ""}.` : `Waiting for ${ownerName} since ${U.fmtDate(appr ? appr.decidedAt : esc.escalatedAt)}.`;
-    const consequence = entry ? ` ${U.esc(entry.name)} stays suspended until it is complete and ${ownerName} reconfirms it; <a href="#/registry/${entry.id}">open the registration</a>.` : " Nothing is suspended: this is about the person's use of the AI system.";
-    const actions = perm.allowed ? `<div class="btn-row">${esc.ownerTaskStatus === "In progress" ? "" : `<button type="button" class="btn btn-secondary" data-action="rem-start" data-esc="${esc.escalationId}">${I.clock} Started…</button>`}<button type="button" class="btn btn-primary" data-action="rem-complete" data-esc="${esc.escalationId}">${I.checkCircle} Complete the remediation…</button></div>` : `<div class="notice notice-warn">${I.lock}<span>${U.esc(perm.reason)}</span></div>`;
-    return `<div class="fq-owner"><h4 class="fq-sub">The owner's remediation</h4><p class="small">${state}${consequence}</p>${actions}</div>`;
+    const o = S.remediationOwner(esc), ownerName = o ? U.esc(o.displayName) : "the accountable owner";
+    const perm = S.permission("remediate", { entry: entry || null, escalation: esc });
+    const consequence = entry ? `${U.esc(entry.name)} stays suspended until the remediation is completed and ${ownerName} reconfirms it; <a href="#/registry/${entry.id}">open the registration</a>.` : "Nothing is suspended: this remediation is about the person's use of the AI system.";
+    const actions = perm.allowed ? `<div class="btn-row">${S.remediationStatus(esc) === "In progress" ? "" : `<button type="button" class="btn btn-secondary" data-action="rem-start" data-esc="${esc.escalationId}">${I.clock} Start the remediation…</button>`}<button type="button" class="btn btn-primary" data-action="rem-complete" data-esc="${esc.escalationId}">${I.checkCircle} Complete the remediation…</button></div>` : `<div class="notice notice-warn">${I.lock}<span>${U.esc(perm.reason)}</span></div>`;
+    return `<div class="fq-owner"><p class="small">${consequence}</p>${actions}</div>`;
   }
   /* The reviewer's answer to a return: the same choices as the escalation itself, resubmitted to the approvers with a clean count. */
   function reviseFormHtml(f, esc) {

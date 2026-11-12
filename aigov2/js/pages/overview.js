@@ -55,13 +55,14 @@
     /* The link opens the oldest returned escalation the reader may see; any others sit tagged at the top of the queue (2026-09-29). */
     const retVis = retEsc.filter((e) => vis.has(e.findingId)).sort((a, b) => (a.escalatedAt || "").localeCompare(b.escalatedAt || ""));
     if (retEsc.length) items.push(`${I.flag} ${retEsc.length} ${U.plural(retEsc.length, "escalation was", "escalations were")} returned to the reviewer and ${U.plural(retEsc.length, "waits", "wait")} for a revision.${S.can("review") && retVis.length ? ` <a href="#/findings/escalated/${retVis[0].findingId}">Revise ${retEsc.length === 1 ? "it" : "them"} on Findings.</a>` : ""}`);
-    /* Approved remediations waiting for their owners (the owner's response, 2026-09-28): a fix pending, named with its owner. */
-    const tasks = AGC.data.escalations.filter((e) => e.status === "Approved" && ["Open", "In progress"].includes(e.ownerTaskStatus || "Open") && (approver || S.can("settings") || vis.has(e.findingId) || (S.group(e.groupId) || {}).ownerMemberId === me.memberId));
+    /* Approved remediations that are not finished (the owner's response, 2026-09-28): each named with its business group and its status,
+       Not started or In progress (2026-11-12). */
+    const tasks = AGC.data.escalations.filter((e) => S.remediationOpen(e) && (approver || S.can("settings") || vis.has(e.findingId) || (S.remediationOwner(e) || {}).memberId === me.memberId));
     if (tasks.length) {
-      const mine = tasks.filter((e) => (S.group(e.groupId) || {}).ownerMemberId === me.memberId).length;
-      const names = tasks.map((e) => { const en = e.registerEntryId ? S.entry(e.registerEntryId) : null, g = S.group(e.groupId); return en ? `<a href="#/registry/${en.id}">${U.esc(en.name)}</a> (${U.esc(g ? g.name : "")})` : `<a href="#/groups/${e.groupId}/findings?open=${e.findingId}">${U.esc(g ? g.name : "")}, conduct</a>`; });
-      (mine ? mineLines : items).push(`${I.alert} ${tasks.length} approved ${U.plural(tasks.length, "remediation waits", "remediations wait")} for ${tasks.length === 1 ? "its owner" : "their owners"}${mine ? `, ${mine} for you` : ""}: ${names.join(", ")}.`);
-      tasks.filter((e) => (S.group(e.groupId) || {}).ownerMemberId === me.memberId).forEach((e) => mineGroups.add(e.groupId));
+      const isMine = (e) => !S.remediationOwnUse(e) && (S.remediationOwner(e) || {}).memberId === me.memberId, mine = tasks.filter(isMine).length;
+      const names = tasks.map((e) => { const en = e.registerEntryId ? S.entry(e.registerEntryId) : null, g = S.group(e.groupId); const st = S.remediationStatus(e).toLowerCase(); return en ? `<a href="#/registry/${en.id}">${U.esc(en.name)}</a> (${U.esc(g ? g.name : "")}, ${st})` : `<a href="#/groups/${e.groupId}/findings?open=${e.findingId}">${U.esc(g ? g.name : "")}, conduct</a> (${st})`; });
+      (mine ? mineLines : items).push(`${I.alert} ${tasks.length} approved ${U.plural(tasks.length, "remediation is", "remediations are")} not finished${mine ? (tasks.length === 1 ? ", and it is yours" : `, ${mine} of them yours`) : ""}: ${names.join(", ")}.`);
+      tasks.filter(isMine).forEach((e) => mineGroups.add(e.groupId));
     }
     /* An owner's group that needs nothing from them today still gets its line, so the group page is one click away. */
     groups.filter((g) => g.ownerMemberId === me.memberId && !mineGroups.has(g.id)).forEach((g) => mineLines.push(`${I.checkCircle} ${U.esc(g.name)}, the group you own, needs nothing from you today. <a href="#/groups/${g.id}">Open ${U.esc(g.name)}.</a>`));

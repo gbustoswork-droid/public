@@ -132,10 +132,10 @@
       const f = S.finding(e.findingId), person = f ? name(f.memberId) : "", asset = e.aiSystemId ? S.systemName(e.aiSystemId) : "a direct chat";
       const entry = e.registerEntryId ? S.entry(e.registerEntryId) : null, href = entry ? `#/registry/${entry.id}` : `#/groups/${gid}/findings?open=${e.findingId}`;
       const a = link(href, asset), approvedOn = (e.approvals || []).map((x) => x.decidedAt).sort().slice(-1)[0] || e.approvedAt || "";
-      const state = e.ownerTaskStatus === "In progress" ? `is in progress since ${U.fmtDate(e.startedAt || approvedOn)}` : "is waiting for you";
+      const state = S.remediationStatus(e) === "In progress" ? `is in progress since ${U.fmtDate(e.startedAt || approvedOn)}` : S.remediationOwnUse(e) ? `is not started and waits for ${S.REMEDIATION_OWN_USE}, because it is about your own use of AI` : "is not started and waits for you";
       if (e.status === "Approved") return e.target === "AI system"
-        ? `<li>${a} is suspended: the remediation approved on ${U.fmtDate(approvedOn)} ${state}. Complete it and reconfirm.</li>`
-        : `<li>The remediation approved on ${U.fmtDate(approvedOn)} for ${U.esc(person)}'s use of ${a} ${state}. Complete it.</li>`;
+        ? `<li>${a} is suspended: the remediation approved on ${U.fmtDate(approvedOn)} ${state}.${S.remediationOwnUse(e) ? "" : " Complete it and reconfirm."}</li>`
+        : `<li>The remediation approved on ${U.fmtDate(approvedOn)} for ${U.esc(person)}'s use of ${a} ${state}.${S.remediationOwnUse(e) ? "" : " Complete it."}</li>`;
       if (e.status === "Returned") return `<li>The escalation about ${e.target === "AI system" ? a : `${U.esc(person)}'s use of ${a}`} was returned to the reviewer and waits for a revision.</li>`;
       return e.target === "AI system" ? `<li>${a} is suspended pending an approver's decision on its escalation.</li>` : `<li>An escalation about ${U.esc(person)}'s use of ${a} awaits an approver's decision.</li>`;
     }).join("");

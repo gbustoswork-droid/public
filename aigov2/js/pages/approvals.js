@@ -85,13 +85,16 @@
     if (!it) return C.card("Decision", C.emptyState("Choose an item", "Pick an escalation or a registration in the queue on the left to see it here with everything behind it."));
     return it.kind === "escalation" ? escalationHtml(it) : registrationHtml(it);
   }
-  const escPill = (e, it) => ({
-    Open: `<span class="pill pill-pending">${I.clock}<span>Awaiting approval${e.requiredApprovals > 1 ? ` · ${it.given} of ${it.required}` : ""}</span></span>`,
-    Returned: `<span class="pill pill-pending">${I.flag}<span>Returned to the reviewer</span></span>`,
-    Approved: `<span class="pill pill-ok">${I.checkCircle}<span>Approved · remediation with the owner</span></span>`,
-    Rejected: `<span class="pill pill-muted">${I.x}<span>Rejected as accepted risk</span></span>`,
-    Completed: `<span class="pill pill-ok">${I.checkCircle}<span>Remediation completed</span></span>`,
-  })[e.status] || `<span class="pill pill-muted"><span>${U.esc(e.status)}</span></span>`;
+  /* The approvers' decision until it is approved; from then on the remediation's status, in the words every page uses (2026-11-12). */
+  const escPill = (e, it) => {
+    const st = S.remediationStatus(e);
+    if (e.status === "Open") return `<span class="pill pill-pending">${I.clock}<span>Awaiting approval${e.requiredApprovals > 1 ? ` · ${it.given} of ${it.required}` : ""}</span></span>`;
+    if (e.status === "Returned") return `<span class="pill pill-pending">${I.flag}<span>Returned to the reviewer</span></span>`;
+    if (e.status === "Rejected") return `<span class="pill pill-muted">${I.x}<span>Rejected as accepted risk</span></span>`;
+    if (st === "Completed") return `<span class="pill pill-ok">${I.checkCircle}<span>Remediation completed</span></span>`;
+    if (st === "Closed by retirement") return `<span class="pill pill-muted">${I.retire}<span>Remediation closed by retirement</span></span>`;
+    return st ? `<span class="pill pill-ok">${I.checkCircle}<span>Approved · remediation ${st.toLowerCase()}</span></span>` : `<span class="pill pill-muted"><span>${U.esc(e.status)}</span></span>`;
+  };
 
   function escalationHtml(it) {
     const e = it.escalation, f = it.finding;
@@ -101,7 +104,7 @@
     const perm = S.permission("approve", { finding: f, escalation: e }), due = e.status === "Open" && perm.allowed;
     const contentOk = S.canViewContent(f.groupId, { escalated: true });
     const who = m ? name(m) : "an unknown person";
-    const sentence = `Escalated by ${by ? name(by) : "a reviewer"} on ${U.fmtDate(e.escalatedAt)} from a ${U.esc(f.severity)} violation of ${U.esc(r ? r.name : f.ruleId)}, ${who} ${s ? `with ${U.esc(s.name)} (${U.esc(kindName(s))}${g ? `, ${U.esc(g.name)}` : ""})` : `in a direct chat${g ? ` in ${U.esc(g.name)}` : ""}`}. ${e.target === "Conduct" ? "What must change is this person's use of it." : `What must change is the AI system${entry ? `; ${U.esc(entry.name)}'s registration is suspended until the approvers decide` : ""}.`}`;
+    const sentence = `Escalated by ${by ? name(by) : "a reviewer"} on ${U.fmtDate(e.escalatedAt)} from a ${U.esc(f.severity)} violation of ${U.esc(r ? r.name : f.ruleId)}, ${who} ${s ? `with ${U.esc(s.name)} (${U.esc(kindName(s))}${g ? `, ${U.esc(g.name)}` : ""})` : `in a direct chat${g ? ` in ${U.esc(g.name)}` : ""}`}. ${e.target === "Conduct" ? "What must change is this person's use of it." : `What must change is the AI system${retiredWhileWaiting(e, entry) ? `; ${U.esc(entry.name)}'s registration was ${retiredWords(entry)} while this escalation waited, and the escalation stays in this queue` : entry && ["Open", "Returned"].includes(e.status) ? `; ${U.esc(entry.name)}'s registration is suspended until the approvers decide` : entry && S.remediationOpen(e) ? `; ${U.esc(entry.name)}'s registration stays suspended until the remediation is completed and the owner reconfirms` : ""}.`}`;
     const head = C.card(`<span class="conv-title">${U.sevChip(f.severity)}<span>${U.esc(r ? r.name : f.ruleId)}</span></span>`, `<p class="conv-sentence">${sentence}</p>${F().recurrenceHtml(f)}`, { action: `<span class="conv-pills">${escPill(e, it)}</span>`, cls: "conv-head-card" });
     const escalation = C.card("Escalation", escalationRows(e, f, s, entry, owner));
     const decision = C.card(due ? "Your decision" : "Decision", decisionHtml(it, e, f, entry, owner, by, perm), { cls: due ? "fq-decision fq-decision-open" : "fq-decision" });
@@ -109,11 +112,14 @@
     const conv = x ? AGC.pages.interactions.conversationHtml(x, { mark: F().MARK, focusTurn: f.turnNumber, noHead: true, escalated: true }) : C.card("Conversation", '<p class="small muted">The interaction is not archived.</p>');
     return `${head}${escalation}${decision}${finding}${conv}${F().purposeHtml(f)}${F().historyHtml(f, e)}`;
   }
+  /* A registration retired while its escalation waited (Gabriel, 2026-11-12): the escalation stays in the queue, and the page says what happened. */
+  const retiredWhileWaiting = (e, entry) => !!entry && entry.status === "Retired" && ["Open", "Returned"].includes(e.status);
+  const retiredWords = (entry) => { const h = (entry.decisionHistory || []).slice().reverse().find((x) => x.action === "Retired") || {}, who = h.actorMemberId ? S.member(h.actorMemberId) : null; return `retired${h.date ? ` on ${U.fmtDate(h.date)}` : ""}${who ? ` by ${name(who)}` : ""}`; };
   function escalationRows(e, f, s, entry, owner) {
     const rv = f.review || {}, reviewer = rv.reviewerMemberId ? S.member(rv.reviewerMemberId) : null, by = S.member(e.escalatedByMemberId);
     const cov = s ? S.systemCoverage(s) : null;
     const regRow = e.target === "AI system"
-      ? (entry ? `<a href="#/registry/${entry.id}">${U.esc(entry.name)}</a> · ${U.statusPill(entry.status)}<div class="small muted">${entry.status === "Suspended" ? "Suspended pending this decision. Archive360 switches nothing off; the suspension is a governance flag." : `Registered individually · ${U.esc(entry.status)}`}</div>` : `<span class="muted">${s ? `${U.esc(s.name)} has no registration of its own${cov && cov.entry ? `; it runs under ${U.esc(cov.entry.name)}'s approval` : ""}, so nothing is suspended.` : "A direct chat has no registration."}</span>`)
+      ? (entry ? `<a href="#/registry/${entry.id}">${U.esc(entry.name)}</a> · ${U.statusPill(entry.status)}<div class="small muted">${retiredWhileWaiting(e, entry) ? `${retiredWords(entry).charAt(0).toUpperCase() + retiredWords(entry).slice(1)}, while this escalation waited. Retiring does not close an escalation: it stays in this queue until an approver decides it.` : entry.status === "Suspended" && ["Open", "Returned"].includes(e.status) ? "Suspended pending this decision. Archive360 switches nothing off; the suspension is a governance flag." : entry.status === "Suspended" && S.remediationOpen(e) ? "Suspended until the approved remediation is completed and the owner reconfirms. Archive360 switches nothing off; the suspension is a governance flag." : `Registered individually · ${U.esc(entry.status)}`}</div>` : `<span class="muted">${s ? `${U.esc(s.name)} has no registration of its own${cov && cov.entry ? `; it runs under ${U.esc(cov.entry.name)}'s approval` : ""}, so nothing is suspended.` : "A direct chat has no registration."}</span>`)
       : `<span class="muted">Not affected: a conduct escalation never touches the registration.</span>${e.downgrade ? `<div class="small muted">Downgraded from the AI system by ${name(S.member(e.downgrade.byMemberId)) || "the approver"} on ${U.fmtDate(e.downgrade.at)}: ${U.esc(e.downgrade.reason || "")}</div>` : ""}`;
     return `<dl class="kv kv-wide kv-detail">
       <dt>What must change</dt><dd>${e.target === "Conduct" ? "This person's use of the AI system" : "The AI system: its configuration, knowledge, instructions, sharing or registration"}</dd>
@@ -140,9 +146,9 @@
     return `<form class="fq-form ap-form" data-ap-form="${e.escalationId}" autocomplete="off">
       ${C.field("Approve, reject or return", `<div class="fq-choice ap-choice"><label class="qf-opt"><input type="radio" name="apDecision" value="approve"/> Approve the remediation</label><label class="qf-opt"><input type="radio" name="apDecision" value="reject"/> Reject as accepted risk: the violation stands, nothing has to change</label><label class="qf-opt"><input type="radio" name="apDecision" value="return"/> Return to reviewer: something must be clarified first</label></div>`)}
       <div data-ap-block="approve" hidden>
-        ${e.target === "AI system" ? `<label class="qf-opt"><input type="checkbox" name="apDowngrade"/> Downgrade to conduct: the AI system is not the problem, this person's use of it is</label><div data-ap-downgrade hidden>${C.field("Why", `<input class="inp" name="apDowngradeReason" placeholder="Required. Recorded on the registration and in Audit History."/>`, entry ? `${U.esc(entry.name)} returns to Approved at once and ${ownerName} is told now; the remediation goes to them as a conduct matter.` : "The remediation goes to the owner as a conduct matter.")}</div>` : ""}
+        ${e.target === "AI system" ? `<label class="qf-opt"><input type="checkbox" name="apDowngrade"/> Downgrade to conduct: the AI system is not the problem, this person's use of it is</label><div data-ap-downgrade hidden>${C.field("Why", `<input class="inp" name="apDowngradeReason" placeholder="Required. Recorded on the registration and in Audit History."/>`, retiredWhileWaiting(e, entry) ? `${U.esc(entry.name)} stays retired; the remediation goes to ${ownerName} as a conduct matter.` : entry ? `${U.esc(entry.name)} returns to Approved at once and ${ownerName} is told now; the remediation goes to them as a conduct matter.` : "The remediation goes to the owner as a conduct matter.")}</div>` : ""}
         ${C.field("Note", `<textarea class="inp" name="apNote" rows="2" placeholder="Optional. Recorded with your decision and shown to the owner."></textarea>`)}
-        <div class="notice notice-info">${I.info}<span>${last ? `Your approval completes it: the remediation goes to ${ownerName} to complete${entry && e.target === "AI system" ? `, and ${U.esc(entry.name)} stays suspended until they complete it and reconfirm` : ""}. ${owner ? `${ownerName} hears about it in the next digest.` : ""}` : `Yours is ${it.given ? "another" : "the first"} of the ${e.requiredApprovals} approvals a ${sev} violation needs; ${remaining - 1 === 1 ? "one more approver" : `${remaining - 1} more approvers`} must decide before the remediation goes to ${ownerName}.`}</span></div>
+        <div class="notice notice-info">${I.info}<span>${last && retiredWhileWaiting(e, entry) && e.target === "AI system" ? `Your approval completes the decision and is recorded. ${U.esc(entry.name)} is already retired, so the remediation is closed by retirement at once: the approved change will not be made. If this person's use of it is the problem, downgrade to conduct instead.` : last ? `Your approval completes it: the remediation goes to ${ownerName} to complete${entry && e.target === "AI system" ? `, and ${U.esc(entry.name)} stays suspended until they complete it and reconfirm` : ""}. ${owner ? `${ownerName} hears about it in the next digest.` : ""}` : `Yours is ${it.given ? "another" : "the first"} of the ${e.requiredApprovals} approvals a ${sev} violation needs; ${remaining - 1 === 1 ? "one more approver" : `${remaining - 1} more approvers`} must decide before the remediation goes to ${ownerName}.`}</span></div>
       </div>
       <div data-ap-block="reject" hidden>
         ${C.field("Why the risk is accepted", `<textarea class="inp" name="apReason" rows="2" placeholder="Required. Recorded with your decision and sent to the owner now."></textarea>`)}
@@ -156,14 +162,16 @@
     </form>`;
   }
   function outcomeHtml(e, entry, owner) {
-    const ownerName = owner ? `<a href="#/members/${owner.memberId}">${name(owner)}</a>` : "the accountable owner";
+    const ro = S.remediationOwner(e) || owner, ownerName = ro ? `<a href="#/members/${ro.memberId}">${name(ro)}</a>` : "the accountable owner";
     const last = (e.approvals || []).slice(-1)[0], lastBy = last ? S.member(last.approverMemberId) : null;
     const rows = [];
     if (e.status === "Rejected") rows.push(["Outcome", `Rejected as accepted risk${lastBy ? ` by ${name(lastBy)}` : ""}${last ? `, ${U.fmtDateTime(last.decidedAt)}` : ""}<div class="small muted">${U.esc(last ? last.reasoning : "")}</div>`]);
     else {
       const when = e.approvedAt || (last ? last.decidedAt : null);
-      rows.push(["Outcome", `Approved${when ? `, ${U.fmtDateTime(when)}` : ""}: the remediation went to ${ownerName}${e.downgrade ? " as a conduct matter, after a downgrade" : ""}.`]);
-      rows.push(["Owner's remediation", e.status === "Completed" ? `Completed${e.completedAt ? ` ${U.fmtDate(e.completedAt)}` : ""}${e.completionNote ? `: ${U.esc(e.completionNote)}` : ""}${e.resolution === "Retired" ? " · resolved by retiring the AI system" : ""}${e.reconfirmedAt ? ` · reconfirmed ${U.fmtDate(e.reconfirmedAt)}` : ""}` : `${e.ownerTaskStatus === "In progress" ? `In progress${e.startedAt ? ` since ${U.fmtDate(e.startedAt)}` : ""}${e.startNote ? `: ${U.esc(e.startNote)}` : ""}` : `Waiting for ${ownerName}`}${entry && entry.status === "Suspended" ? ` · ${U.esc(entry.name)} stays suspended until it is completed and reconfirmed` : ""}`]);
+      /* Approved after the registration was retired: the remediation was closed by that retirement at once, so it never went to anyone. */
+      const closedAtOnce = S.remediationStatus(e) === "Closed by retirement" && !!e.approvedAt && e.closedAt === e.approvedAt;
+      rows.push(["Outcome", closedAtOnce ? `Approved${when ? `, ${U.fmtDateTime(when)}` : ""}. ${entry ? U.esc(entry.name) : "The AI system"} was already retired, so the remediation was closed at once and went to nobody.` : `Approved${when ? `, ${U.fmtDateTime(when)}` : ""}: the remediation went to ${S.remediationOwnUse(e) ? `Compliance, because it is about ${ownerName}'s own use of AI` : ownerName}${e.downgrade ? " as a conduct matter, after a downgrade" : ""}.`]);
+      rows.push(["Remediation", `${S.remediationLine(e, { owner: ownerName })}${S.remediationOpen(e) && entry && entry.status === "Suspended" ? `<div class="small muted">${U.esc(entry.name)} stays suspended until the remediation is completed and reconfirmed.</div>` : ""}`]);
     }
     return `<dl class="kv kv-wide kv-detail">${rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("")}</dl>`;
   }
