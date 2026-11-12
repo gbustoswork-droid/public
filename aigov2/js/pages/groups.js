@@ -57,8 +57,10 @@
     return `<article class="group-card${r.ready ? "" : " group-card-warn"}" data-group-id="${g.id}">
       <div class="group-card-header">
         <div class="group-card-icon-tile">${GROUP_ICON}</div>
-        <div class="group-card-name"><a class="group-card-name-text" href="#/groups/${g.id}" title="${U.esc(g.name)}">${U.esc(g.name)}</a>${readyIcon(r)}</div>
-        ${C.riskPill(x.risk)}
+        <div class="group-card-title">
+          <div class="group-card-name"><a class="group-card-name-text" href="#/groups/${g.id}" title="${U.esc(g.name)}">${U.esc(g.name)}</a></div>
+          <div class="group-card-status">${C.riskPill(x.risk)}${readyIcon(r)}</div>
+        </div>
         ${actionsBtn(g, false)}
       </div>
       <div class="group-card-meta">

@@ -72,7 +72,7 @@ The Overview is the landing page for everyone: the state of AI governance at a g
 The Groups page lists every business group and tells you whether each is ready for governance. A group is ready when it has an active accountable owner and at least one reviewer with access to its activity.
 
 - **Tiles:** All groups, Ready, Not ready.
-- **Cards or Grid** switch the layout. Each card shows the group's owner, how many reviewers have access, its risk score, and four counts that open the matching sub-page: Members, AI assets, Findings awaiting review and Interactions. A red footer names the gap when the group is not ready. The grid shows the same facts as sortable columns.
+- **Cards or Grid** switch the layout. Each card shows the group's name in full, with its risk score and a mark for whether it is ready beneath it, then its owner, how many reviewers have access, and four counts that open the matching sub-page: Members, AI assets, Findings awaiting review and Interactions. A red footer names the gap when the group is not ready. The grid shows the same facts as sortable columns.
 - **Search** finds a group by its name, its owner or one of its departments.
 - **Actions** on a card or row opens any of the group's six sub-pages.
 

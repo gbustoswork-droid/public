@@ -902,7 +902,18 @@ mark.hit { background: #ffe58f; color: inherit; padding: 0 1px; border-radius: 2
 .risk-items .risk-badge { margin-left: auto; }
 .risk-foot { margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--border); }
 .risk-cell-link { text-decoration: none; }
-.group-card-header .risk-badge { align-self: center; margin-right: 6px; }
+/* A group's name is always readable on its card (Gabriel, 2026-11-12). The risk pill, the readiness icon and the Actions button had
+   shared the header's one line with the name and squeezed it to a few letters ("Contact C…"; nine of the twelve names were cut off at
+   1280 px). Now the name has that line to itself beside the Actions button and wraps to a second line when the card is narrow; the
+   risk pill and the readiness icon sit on a line of their own beneath it. A name too long for two lines ends in an ellipsis and
+   shows in full on hover. */
+.group-card-header { align-items: flex-start; }
+.group-card-title { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
+.group-card-name { flex: none; max-width: 100%; line-height: 1.3; }
+.group-card-name-text { white-space: normal; overflow-wrap: anywhere; text-overflow: clip; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; }
+.group-card-status { display: flex; align-items: center; gap: 8px; min-height: 22px; }
+.group-card-status > .cov-ok, .group-card-status > .cov-gap { display: inline-flex; }
+.group-card-header .group-card-actions { margin-top: 1px; }
 /* The Groups grid gained a Risk column (2026-10-21): its headers wrap so the ten columns fit at 1280 px without a horizontal scroll. */
 .groups-grid-table thead th { white-space: normal; line-height: 1.25; }
 .groups-grid-table .risk-badge { white-space: nowrap; }
