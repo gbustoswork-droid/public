@@ -4,7 +4,7 @@
    Actions column, because an audit row is not something you act on: its subject is the link. Everyone whose Profile includes audit sees the
    tab, and each person sees the events of the business groups they are entitled to or own, the customer-wide events, and their own actions;
    the Administrator sees everything. The group page's Audit History sub-page shows the same rows for one group, with the band's date range
-   as its period. Governance API events ("AI activity") stay out of Version 1 with that capability. */
+   as its period. Governed AI Content Access events ("AI activity": an AI system's retrievals from the archive, allowed and withheld) stay out until that capability is designed. */
 (function () {
   const U = AGC.util, S = AGC.store, D = AGC.data, I = AGC.icons, C = AGC.components;
   AGC.pages = AGC.pages || {};

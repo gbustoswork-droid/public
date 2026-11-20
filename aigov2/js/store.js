@@ -319,8 +319,8 @@
         what: "Whether its configuration changed after its registration was last approved or reconfirmed, so the approval may no longer describe what is running.",
         points: (w, cap, n) => `Adds ${w(n.changed)}, once, when its instructions, knowledge files, Actions, capabilities or recommended model changed after that date. More changes add nothing more.` },
       { key: "reach", label: "Reach", cap: 8, n: { wide: 4, sharedKey: 4, outside: 2 },
-        what: "How widely it is shared, and whether it can call other systems.",
-        points: (w, cap, n) => `Adds ${w(n.wide)} when the whole workspace, or 100 or more people, can use it. Adds ${w(n.sharedKey)} when one of its Actions signs in to another system with a single key shared by everyone. Adds ${w(n.outside)} when one of its Actions calls a system outside your organization. Each counts once, and together they add at most ${cap}.` },
+        what: "How widely it is shared, and whether it can call other systems: a GPT through its Actions, a plugin through its MCP servers.",
+        points: (w, cap, n) => `Adds ${w(n.wide)} when the whole workspace, or 100 or more people, can use it. Adds ${w(n.sharedKey)} when one of its Actions or MCP servers signs in to another system with a single key shared by everyone. Adds ${w(n.outside)} when one of its Actions or MCP servers calls a system outside your organization. Each counts once, however many there are, and together they add at most ${cap}.` },
       { key: "remediation", label: "Open remediation", cap: 10, n: { each: 5 },
         what: "Escalations about it that are not finished: a reviewer said something must change, and an approver has not decided yet or the owner has not made the change.",
         points: (w, cap, n) => `Each unfinished escalation adds ${w(n.each)}. They add up, to at most ${cap}.` },
@@ -447,14 +447,21 @@
       const drift = (sys.configVersions || []).filter((v) => v.date > since && v.date <= asOf && ["instructions", "knowledge", "action", "capability", "model"].includes(v.kind));
       if (drift.length) add("drift", wv("drift", N("drift").changed), `${drift.length} ${U.plural(drift.length, "change")} since the approval of ${U.fmtDate(since)}, last ${drift[drift.length - 1].summary}`, hrefSelf, "The owner reconfirms the registration after reviewing the current configuration.");
     }
-    // 7. reach
+    /* 7. reach: how widely it is shared, and the other systems it calls, a GPT through its Actions and a plugin through its MCP servers
+       (Gabriel, 2026-11-12: his requirement counts a workspace-built plugin's MCP servers as it counts a GPT's Actions; until then only
+       Actions were read, so the factor would have gone blind as plugins replace GPTs). Each condition counts once, however many Actions
+       or MCP servers meet it. The shared key counts whether the system called is the organization's own or not, and a call outside the
+       organization counts whatever its sign-in. The workspace's apps are not counted: each person connects their own account. */
     if (sys) {
-      let reach = 0; const why = [];
-      if ((sys.sharing || {}).scope === "workspace" || (sys.accessibleUserCount || 0) >= 100) { reach += wv("reach", N("reach").wide); why.push(`${U.fmtNum(sys.accessibleUserCount || 0)} people can use it`); }
-      const acts = sys.actions || [];
-      if (acts.some((a) => /key/i.test(a.authType || a.auth || ""))) { reach += wv("reach", N("reach").sharedKey); why.push("an Action with a shared key"); }
-      if (acts.some((a) => a.external || a.outside)) { reach += wv("reach", N("reach").outside); why.push("an Action calling an outside domain"); }
-      if (reach) add("reach", reach, why.join(", "), hrefSelf, "Narrower sharing, or per-user authentication on its Actions.");
+      let reach = 0; const why = [], fix = [];
+      const everyone = (sys.sharing || {}).scope === "workspace", people = sys.accessibleUserCount || 0;
+      if (everyone || people >= 100) { reach += wv("reach", N("reach").wide); why.push(everyone ? `the whole workspace can use it${people ? ` (${U.fmtNum(people)} people)` : ""}` : `${U.fmtNum(people)} people can use it`); fix.push("narrower sharing"); }
+      const calls = (sys.actions || []).map((a) => ["an Action", a]).concat((sys.mcpServers || []).map((a) => ["an MCP server", a]));
+      const shared = calls.filter(([, a]) => a.authIdentity === "shared" || /key/i.test(a.authType || a.auth || "")), outside = calls.filter(([, a]) => a.external || a.outside);
+      if (shared.length) { reach += wv("reach", N("reach").sharedKey); why.push(`a shared key on ${U.uniq(shared.map(([k]) => k)).join(" and ")}`); fix.push("per-person sign-in in place of the shared key"); }
+      if (outside.length) { reach += wv("reach", N("reach").outside); why.push("a call to a system outside the organization"); fix.push("calling only systems inside the organization"); }
+      const upper = (t) => t.charAt(0).toUpperCase() + t.slice(1);
+      if (reach) add("reach", reach, upper(why.join(", ")), hrefSelf, `${upper(fix.length > 1 ? `${fix.slice(0, -1).join(", ")}, or ${fix[fix.length - 1]}` : fix[0])}.`);
     }
     // 8. open remediation
     const escs = D.escalations.filter((x) => { const fin = x.completedAt || x.closedAt; return (sys ? x.aiSystemId === sys.id : (e && x.registerEntryId === e.id)) && dayOf(x.escalatedAt) <= asOf && (!fin || dayOf(fin) > asOf) && (asOf >= U.today() ? ["Open", "Approved", "Returned"].includes(x.status) : x.status !== "Rejected"); });
