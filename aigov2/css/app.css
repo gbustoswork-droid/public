@@ -441,6 +441,7 @@ code { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size
 .verify-title { display: flex; align-items: center; gap: 8px; font-size: 12.5px; margin-bottom: 10px; }
 .verify-title svg { width: 16px; height: 16px; color: var(--ok); }
 .summary-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-bottom: 10px; }
+.summary-grid.summary-grid-6 { grid-template-columns: repeat(6, 1fr); }
 .sg-item { background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 8px 10px; }
 .sg-val { font-size: 18px; font-weight: 800; }
 .sg-label { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-secondary); margin-top: 2px; }
@@ -1005,3 +1006,34 @@ mark.hit { background: #ffe58f; color: inherit; padding: 0 1px; border-radius: 2
 .gs-ticks i { position: absolute; top: 4px; transform: translateX(-50%); font-style: normal; font-size: 10.5px; color: var(--text-secondary); }
 .guide-score figcaption { margin-top: 4px; font-size: 13px; color: var(--text-secondary); }
 .gs-lead { margin-bottom: 8px; font-size: 13px; color: var(--text-secondary); }
+
+/* Agent activity (2026-11-22): a quiet button beside the prompt, red only on a refusal or a failure, and a view of its own with one run per prompt. */
+.agent-btn-wrap { float: right; display: inline-flex; align-items: center; gap: 6px; margin-left: 10px; }
+.agent-btn { font: inherit; font-size: 12px; padding: 2px 9px; border-radius: 999px; border: 1px solid var(--border-strong); background: transparent; color: inherit; cursor: pointer; opacity: 0.85; }
+.agent-btn:hover { opacity: 1; border-color: var(--accent); color: var(--accent); }
+.agent-btn-alert { border-color: var(--danger); color: var(--danger); opacity: 1; }
+.conv-view-toggle { margin-right: 10px; }
+/* The refusal or failure is a small red pill with white text, readable on the white tab and on the selected blue one (Gabriel, 2026-11-22:
+   red text on the selected tab could not be read). The tab's own text keeps its normal color. */
+.conv-view-toggle .toggle-flag { display: inline-block; margin-left: 8px; padding: 0 8px; border-radius: 999px; background: var(--danger); color: #fff; font-size: 11px; font-weight: 600; line-height: 18px; vertical-align: 1px; }
+.runs-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 10px; }
+.runs { list-style: none; margin: 0; padding: 0; }
+.run { border: 1px solid var(--border-strong); border-radius: 6px; padding: 10px 12px; margin-bottom: 8px; }
+.run-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
+.run-head-main { min-width: 0; }
+.run-prompt { font-weight: 600; margin: 2px 0; overflow-wrap: anywhere; }
+.run-outcome { font-size: 13px; }
+.run-head .btn { white-space: nowrap; }
+.run-tree { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border-strong); }
+.run-orch { margin-bottom: 6px; }
+.run-steps, .run-leaves { list-style: none; margin: 0; padding: 0; }
+.run-steps { margin-left: 6px; border-left: 2px solid var(--border-strong); }
+.run-steps > li { padding: 6px 0 6px 14px; position: relative; }
+.run-steps > li::before { content: ""; position: absolute; left: 0; top: 16px; width: 10px; border-top: 2px solid var(--border-strong); }
+.run-line { display: flex; justify-content: space-between; gap: 12px; }
+.run-time { font-variant-numeric: tabular-nums; font-size: 12px; white-space: nowrap; }
+.run-leaves { margin: 4px 0 0 6px; border-left: 2px solid var(--border-strong); }
+.run-leaf { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; padding: 3px 0 3px 12px; font-size: 13px; overflow-wrap: anywhere; }
+.run-leaf > span:last-child { white-space: nowrap; }
+.run-bad > .run-leaves { border-left-color: var(--danger); }
+.run-bad > .run-line .strong { color: var(--danger); }

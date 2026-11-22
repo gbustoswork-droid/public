@@ -50,8 +50,8 @@ Reviewers and approvers are separate roles. A reviewer decides whether a finding
 ### Key terms {#key-terms}
 
 - **Business group.** A part of your business, such as Lending or Human Resources. People belong to one group at a time, based on their department in your identity source. Everything in the module is organized by group.
-- **AI system.** An AI platform your organization uses, such as ChatGPT Enterprise, or a custom application you built. An administrator adds them in Settings.
-- **AI asset.** Something created inside an AI platform: a GPT, a Project or a Plugin in ChatGPT Enterprise. Archive360 discovers these automatically.
+- **AI system.** An AI platform your organization uses, such as ChatGPT Enterprise, a custom application you built, or Archive360 AI, the AI built into Archive360 itself. An administrator adds them in Settings.
+- **AI asset.** Something inside an AI system: a GPT, a Project or a Plugin that your people created in ChatGPT Enterprise, or an AI assistant that Archive360 provides with Archive360 AI. Archive360 lists these automatically.
 - **Interaction.** One conversation between a person and an AI system, as Archive360 archived it.
 - **Finding.** Something an AI Policy Rule flagged in an interaction, such as a card number in a prompt. A finding becomes a **violation** only when a reviewer confirms it. A dismissed finding counts for nothing.
 - **Registration.** The record that says an AI system or AI asset is approved for use, who is accountable for it, and what it is approved to do. The accountable owner **reconfirms** it on a schedule so the approval never goes stale.
@@ -111,7 +111,8 @@ Every conversation attributed to the group, in a two-part view. The left pane is
 
 - **Quick filters** narrow the tree: members with interactions only, chat status (active, archived, deleted or temporary in the platform), only interactions with confirmed violations, findings awaiting review or dismissed findings, the apps the AI called, interactions where a GPT called an Action, and a member's or an interaction's name. The button shows how many filters are on.
 - **Choose an interaction** to read it on the right: every turn, with the person's prompt and the AI's response, the model used, files that were shared (click to preview), edited prompts with their earlier version, and the apps or Actions the AI called. A line marks each day the conversation ran, with the daily collection that archived it. Flagged turns are tinted: red for a confirmed violation, amber for a finding awaiting review.
-- **Show details** lists the facts: who, which AI asset, the business group, when, how many turns, chat status and files.
+- **Agent actions.** Some AI systems report what their agents did behind the scenes to answer a prompt; Archive360 AI does. Each action shows under the prompt it answered: a search, with the query the agent ran and how many Records matched in email, Slack and Microsoft Teams; how many Records the agent read; a lookup; or something it did for the person, such as creating a saved search, placing a legal hold, creating an export or creating a Case. Up to three show at once, and more open from the line that counts them. The Records themselves are never listed here: to see them, run the same search in eDiscovery.
+- **Show details** lists the facts: who, which AI asset, the business group, when, how many turns, chat status and files, and for Archive360 AI the eDiscovery Case and the number of agent actions.
 - **Find in this interaction** shows only the turns containing a word, highlights every match, and can limit the turns to a date range. You can reveal the turn before or after a match to read it in context, one turn at a time, as far as you like.
 
 Nothing opens until you choose it, because opening content is recorded in Audit History.
@@ -358,7 +359,8 @@ Only the Archive360 Administrator can open Settings. The five pages sit in the o
 The AI platforms and custom applications your organization uses, and how each one's interactions are archived.
 
 - **The list:** each AI system with its accountable owner, its record class, whether it is active, how many items are archived and when the last one arrived.
-- **Add AI system** is a three-step wizard: the name, type (ChatGPT Enterprise, Claude Enterprise, Microsoft 365 Copilot or a custom AI application), accountable owner and approved purpose; then the record class that holds its data, or Not archived with the reason, for a system you want governed without archiving its interactions; then a summary. Saving registers it, and it waits for an approver on the AI Registry.
+- **Add AI system** is a three-step wizard: the name, type (ChatGPT Enterprise, Claude Enterprise, Microsoft 365 Copilot, Archive360 AI or a custom AI application), accountable owner and approved purpose; then the record class that holds its data, or Not archived with the reason, for a system you want governed without archiving its interactions; then a summary. Saving registers it, and it waits for an approver on the AI Registry.
+- **Archive360 AI** is the AI built into Archive360 itself. Nothing is connected for it, because Archive360 archives its own prompts and responses, and it can be added only once.
 - **Actions:** View, with a summary of what is archived; Edit; Deactivate, with a reason, when it is no longer in use; Delete, only while it has no governance record.
 
 Record classes are created in Archive360 before an AI system's interactions can be archived.

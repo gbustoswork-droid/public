@@ -182,7 +182,7 @@
         <dt>Interactions</dt><dd>${U.fmtNum(all.length)} in total · ${U.fmtNum(recent.length)} in the last ${DAYS} days</dd>
         <dt>Last activity</dt><dd>${last ? `${U.fmtDate(last)} · ${U.relTime(last)}` : '<span class="muted">None recorded</span>'}</dd>
         <dt>By business group</dt><dd>${groups.length ? groups.join(" · ") : '<span class="muted">—</span>'}${otherGroups ? `<div class="small muted">The group is the one each person was in at the time of the interaction.</div>` : ""}</dd>
-        <dt>Apps used</dt><dd>${appsUsed}</dd>
+        ${s.providedBy ? "" : `<dt>Apps used</dt><dd>${appsUsed}</dd>`}
         ${actionsRow}
       </dl>
       <h4 class="sub-title">People who used it <span class="count-badge">${people.length}</span></h4>
@@ -208,18 +208,22 @@
        are not repeated here (Gabriel, 2026-09-29). */
     const sentence = s.external
       ? `GPT built outside your workspace${g ? `, used by people in ${U.esc(g.name)}` : ""}.`
+      : s.providedBy ? `${U.esc(s.type)} provided by ${U.esc(s.providedBy)} with ${U.esc(platformName(s))}${g ? `, in ${U.esc(g.name)}` : ""}.`
       : `${U.esc(s.type)} created by ${creator ? U.esc(creator.displayName) : "an unknown person"}${g ? ` in ${U.esc(g.name)}` : ""} on ${U.fmtDate(s.createdDate)}.`;
     const details = C.card("AI asset details", `<dl class="kv kv-wide kv-detail">
         <dt>Type</dt><dd>${U.esc(s.type)}${s.external ? " · built outside your workspace" : ""}</dd>
         <dt>AI system</dt><dd>${U.esc(platformName(s))}${w ? ` · ${U.esc(w.name)} workspace` : ""}</dd>
         <dt>Business group</dt><dd>${g ? `<a href="#/groups/${g.id}">${U.esc(g.name)}</a>` : '<span class="muted">None</span>'}</dd>
-        <dt>Creator</dt><dd>${s.external ? '<span class="muted">Outside your workspace</span>' : personLink(creator)}</dd>
-        <dt>Created</dt><dd>${U.fmtDate(s.createdDate)}</dd>
+        ${s.providedBy ? `<dt>Provided by</dt><dd>${U.esc(s.providedBy)}<div class="small muted">Nobody in your organization created it.</div></dd>
+        <dt>Available since</dt><dd>${U.fmtDate(s.createdDate)}<div class="small muted">The day ${U.esc(platformName(s))} was added as an AI system.</div></dd>` : `<dt>Creator</dt><dd>${s.external ? '<span class="muted">Outside your workspace</span>' : personLink(creator)}</dd>
+        <dt>Created</dt><dd>${U.fmtDate(s.createdDate)}</dd>`}
         <dt>Status in ${U.esc(platformName(s))}</dt><dd>${s.status === "Active" ? "Active" : `${U.esc(s.status)}${s.archivedDate ? ` on ${U.fmtDate(s.archivedDate)}` : ""}`}</dd>
         <dt>Approval</dt><dd>${ap.text}${ap.link ? `<div class="small">${ap.link}</div>` : ""}</dd>
       </dl>`);
     const toggle = `<div class="groups-view-toggle asset-toggle" role="tablist" aria-label="Configuration view"><button type="button" class="groups-view-toggle-btn active" data-view="current" role="tab" aria-selected="true">Current</button><button type="button" class="groups-view-toggle-btn" data-view="history" role="tab" aria-selected="false">Change history</button></div>`;
-    const config = C.card("Configuration", `<div data-view-pane="current">${currentHtml(s)}</div><div data-view-pane="history" hidden>${historyHtml(s)}</div>`, { action: toggle });
+    const config = s.providedBy
+      ? C.card("What it does", `<p>${U.esc(s.description || "")}</p><div class="notice notice-info">${I.info}<span>${U.esc(s.providedBy)} provides and maintains this AI assistant. It has no instructions, knowledge files or settings written by your organization, so there is no configuration to show here.</span></div>`)
+      : C.card("Configuration", `<div data-view-pane="current">${currentHtml(s)}</div><div data-view-pane="history" hidden>${historyHtml(s)}</div>`, { action: toggle });
     const shared = C.card(`Shared with${s.external ? "" : ` <span class="count-badge">${(s.sharedWithMemberIds || []).length + (s.sharedWithPlatformGroups || []).length + (((s.sharing || {}).scope === "workspace") ? 1 : 0)}</span>`}`, sharingHtml(s), { action: s.external ? "" : `<span class="small muted">People and groups granted access in ${U.esc(platformName(s))}${sync ? `, as the sync of ${U.fmtDateTime(sync)} found them` : ""}</span>` });
     const nInt = (S.interactionsBySystem[s.id] || []).length;
     const use = C.card("Activity", useHtml(s), { action: nInt ? `<a class="link" href="#/systems/${s.id}/interactions">Open the ${U.fmtNum(nInt)} ${U.plural(nInt, "interaction")} ${I.arrowRight}</a>` : "" });
@@ -227,7 +231,7 @@
     const bc = crumbs(s, g);
     AGC.shell.render({ kind: "item", navKey: bc.nav || "registry", title: s.name, breadcrumb: bc.crumbs,
       item: { badgeHtml: REG() ? REG().badge(s.type) : "", name: s.name, statusHtml: ap.pill, sentence },
-      html: `<div class="two-col"><div>${config}${shared}</div><div>${C.riskCard(S.riskForAsset(s.id))}${details}${use}</div></div>`, after: P.after });
+      html: `<div class="two-col"><div>${config}${s.providedBy ? "" : shared}</div><div>${C.riskCard(S.riskForAsset(s.id))}${details}${use}</div></div>`, after: P.after });
   };
 
   P.after = function (root) {

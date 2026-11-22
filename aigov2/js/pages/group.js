@@ -67,7 +67,7 @@
     const outside = (S.systemsByGroup[g.id] || []).filter((s) => s.external).length;
     const byType = U.countBy(systems, "type");
     const apps = S.registryEntries().filter((e) => e.groupId === g.id && e.level === "Custom AI system");
-    const registered = S.registryEntries().filter((e) => e.groupId === g.id && ["GPT", "Project", "Plugin"].includes(e.level) && e.status !== "Retired");
+    const registered = S.registryEntries().filter((e) => e.groupId === g.id && S.ASSET_KINDS.includes(e.level) && e.status !== "Retired");
     const members = S.membersByGroup[g.id] || [], active = members.filter((m) => m.memberStatus === "Active");
     const anchors = canSeeMembers(g) ? S.sortMembers(active).slice(0, 4) : [];
     const ints = S.scoped(S.interactionsByGroup[g.id] || []);
@@ -112,10 +112,10 @@
       <div class="two-col">
         <div class="col-main">
           ${findingsCard}
-          ${C.card(`AI in ${U.esc(g.name)}`, `<div class="summary-grid">
+          ${C.card(`AI in ${U.esc(g.name)}`, `<div class="summary-grid${byType["AI assistant"] ? " summary-grid-6" : ""}">
               <div class="sg-item"><div class="sg-val">${U.fmtNum(byType.GPT || 0)}</div><div class="sg-label">GPTs</div></div>
               <div class="sg-item"><div class="sg-val">${U.fmtNum(byType.Project || 0)}</div><div class="sg-label">Projects</div></div>
-              <div class="sg-item"><div class="sg-val">${U.fmtNum(byType.Plugin || 0)}</div><div class="sg-label">Plugins</div></div>
+              <div class="sg-item"><div class="sg-val">${U.fmtNum(byType.Plugin || 0)}</div><div class="sg-label">Plugins</div></div>${byType["AI assistant"] ? `<div class="sg-item"><div class="sg-val">${U.fmtNum(byType["AI assistant"])}</div><div class="sg-label">AI assistants</div></div>` : ""}
               <div class="sg-item"><div class="sg-val">${U.fmtNum(apps.length)}</div><div class="sg-label">Custom AI applications</div></div>
               <div class="sg-item"><div class="sg-val${outside ? " danger-text" : ""}">${U.fmtNum(outside)}</div><div class="sg-label">Built outside your workspace</div></div>
             </div>

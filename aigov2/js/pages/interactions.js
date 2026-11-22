@@ -56,6 +56,53 @@
   /* An Action call on a turn (2026-09-30): the Action, the operation ChatGPT chose, the domain it called, and what the app-call log
      recorded of it. The confirmation ChatGPT shows for a consequential operation is in no log, so a call never claims it. */
   const actionCallsHtml = (calls) => (calls || []).map((c) => `<div class="small app-call">${I.external || I.link} <span class="strong">Action ${U.esc(c.action)}</span> · <span class="mono">${U.esc(c.operationId)}</span> ${U.esc(c.method)} ${U.esc(c.path)} · ${U.esc(c.domain)}${c.external ? ' <span class="tag tag-pending" title="Outside Brookhaven Financial: what people type can be sent to a third party">Outside Brookhaven</span>' : ""} <span class="muted">· request ${c.inputRecorded ? "recorded" : "not recorded"} · response ${c.outputRecorded ? "recorded" : "not recorded"}${c.consequential ? " · confirmation asked, not logged" : ""}</span></div>`).join("");
+  /* Agent activity (Gabriel, 2026-11-22). An AI system can report what its agents did to answer a prompt; Archive360 AI does. The record is a
+     trace: the orchestrator, the agents it called, and under each agent its access check and its tool call, or the refusal and nothing run.
+     It has a view of its own, so the conversation stays prompts and responses: a switch in the Conversation card's head, and beside each
+     prompt a quiet button that turns red only on a refusal or a failure and opens that prompt's run. Records are never listed. */
+  const AV = { id: null, view: "conv", open: new Set() };
+  const stepsWord = (n) => `${U.fmtNum(n)} ${U.plural(n, "step")}`;
+  const runsOf = (x) => (((D.conversations || {})[x.interactionId] || {}).turns || []).filter((t) => t.agentRun);
+  const alertTags = (c) => `${c.refused ? ` <span class="tag tag-danger">${U.fmtNum(c.refused)} refused</span>` : ""}${c.failed ? ` <span class="tag tag-danger">${U.fmtNum(c.failed)} failed</span>` : ""}`;
+  const agentBtn = (t) => { const r = t.agentRun; if (!r || r.direct) return ""; const bad = r.counts.refused || r.counts.failed;
+    return `<span class="agent-btn-wrap"><button type="button" class="agent-btn${bad ? " agent-btn-alert" : ""}" data-agent="run" data-turn="${t.turnNumber}" title="Open what the agents did to answer this prompt">Agent activity · ${stepsWord(r.counts.steps)}</button>${alertTags(r.counts)}</span>`; };
+  const clock = (ts) => `<span class="run-time muted" title="UTC">${U.esc(String(ts || "").slice(11, 19))}</span>`;
+  const leafHtml = (c) => (c.kind === "check"
+    ? `<li class="run-leaf"><span><span class="muted">Access check:</span> ${U.esc(c.what)}${c.reason ? `<div class="small danger-text">${U.esc(c.reason)}</div>` : ""}</span><span class="tag${c.status === "refused" ? " tag-danger" : ""}">${c.status === "refused" ? "Refused" : "Allowed"}</span></li>`
+    : c.kind === "tool"
+      ? `<li class="run-leaf"><span><span class="muted">Tool:</span> ${U.esc(c.tool)}${c.input ? ` <span class="muted">(${U.esc(c.input)})</span>` : ""}${c.change && c.status === "completed" ? ' <span class="tag">Changed data</span>' : ""}${c.status === "failed" ? `<div class="small danger-text">${U.esc(c.result || "")}</div>` : ""}</span>${c.status === "failed" ? '<span class="tag tag-danger">Failed</span>' : `<span class="strong">${U.esc(c.result || "")}</span>`}</li>`
+      : `<li class="run-leaf"><span class="muted">${U.esc(c.text || "")}</span></li>`);
+  const stepHtml = (s, who) => (s.kind === "agent"
+    ? `<li class="run-agent${s.status !== "completed" ? " run-bad" : ""}"><div class="run-line"><span><span class="strong">${U.esc(s.agent)}</span><span class="muted"> · acting for ${U.esc(who)}</span></span>${clock(s.at)}</div><ul class="run-leaves">${(s.steps || []).map(leafHtml).join("")}</ul></li>`
+    : `<li class="run-step"><div class="run-line"><span>${U.esc(s.text || "")}</span>${clock(s.at)}</div></li>`);
+  const runHtml = (x, t, who) => {
+    const r = t.agentRun, open = AV.open.has(t.turnNumber), p = String(t.userPrompt || "");
+    const head = `<div class="run-head"><div class="run-head-main"><div class="small muted">${U.fmtDateTime(t.promptTimestamp)} · ${U.esc(who)} asked</div><div class="run-prompt">${U.esc(p.length > 190 ? p.slice(0, 188) + "…" : p)}</div><div class="run-outcome">${U.esc(r.outcome)}${alertTags(r.counts)}</div></div>${r.direct ? "" : `<button type="button" class="btn btn-sm" data-agent="toggle" data-turn="${t.turnNumber}" aria-expanded="${open}">${open ? "Hide the steps" : `Show the ${stepsWord(r.counts.steps)}`}</button>`}</div>`;
+    const tree = open && !r.direct ? `<div class="run-tree"><div class="run-orch"><span class="strong">Orchestrator: ${U.esc(r.orchestrator)}</span><span class="muted"> · acting for ${U.esc(who)} · ${U.fmtNum(r.seconds || 0)} s</span><div class="small muted">Plan: ${U.esc(r.plan || "")}</div></div><ul class="run-steps">${(r.steps || []).map((s) => stepHtml(s, who)).join("")}</ul><button type="button" class="link-btn small" data-agent="back" data-turn="${t.turnNumber}">Back to this prompt in the conversation</button></div>` : "";
+    return `<li class="run${open ? " run-open" : ""}" id="run-${t.turnNumber}">${head}${tree}</li>`;
+  };
+  const agentViewHtml = (x) => {
+    const ts = runsOf(x), a = x.agentActivity || {}, m = S.member(x.memberId), who = m ? m.displayName : "the person", sys = (S.instance(x.instanceId) || {}).name || "the AI system";
+    const allOpen = ts.filter((t) => !t.agentRun.direct).every((t) => AV.open.has(t.turnNumber));
+    return `<div class="runs-head"><div><span class="strong">${U.fmtNum(ts.length)} ${U.plural(ts.length, "prompt")} · ${stepsWord(a.steps || 0)} · ${U.fmtNum(a.agents || 0)} ${U.plural(a.agents || 0, "agent")}</span>${alertTags(a)}<span class="muted"> · ${U.fmtNum(a.changes || 0)} ${U.plural(a.changes || 0, "change")} to data</span><div class="small muted">What ${U.esc(sys)}'s agents did to answer each prompt, as ${U.esc(sys)} reported it. Every agent acts for the person who asked, with that person's access and no more. Records are counted, never listed.</div></div><button type="button" class="btn btn-sm" data-agent="all" data-open="${allOpen ? "0" : "1"}">${allOpen ? "Collapse all" : "Expand all"}</button></div><ol class="runs">${ts.map((t) => runHtml(x, t, who)).join("")}</ol>`;
+  };
+  const viewSwitch = (x) => { const a = x.agentActivity; if (!a || !a.runs) return ""; const bad = a.refused || a.failed;
+    return `<div class="groups-view-toggle conv-view-toggle" role="tablist" aria-label="View of the interaction"><button type="button" class="groups-view-toggle-btn${AV.view === "conv" ? " active" : ""}" data-agent="view" data-view="conv" role="tab">Conversation</button><button type="button" class="groups-view-toggle-btn${AV.view === "agents" ? " active" : ""}${bad ? " toggle-alert" : ""}" data-agent="view" data-view="agents" role="tab">Agent activity · ${stepsWord(a.steps)}${a.refused ? `<span class="toggle-flag">${U.fmtNum(a.refused)} refused</span>` : ""}${a.failed ? `<span class="toggle-flag">${U.fmtNum(a.failed)} failed</span>` : ""}</button></div>`; };
+  /* One handler for both pages that show the Conversation card. From a prompt's button the view opens on that run, open; from the switch
+     every run shows its outcome line; a run leads back to its prompt. */
+  function agentClick(ev, root, x) {
+    const t = ev.target.closest("[data-agent]"); if (!t || !x) return false;
+    const apply = () => { root.querySelectorAll("[data-conv-pane]").forEach((p) => { p.hidden = p.dataset.convPane !== AV.view; }); root.querySelectorAll("[data-agent='view']").forEach((b) => b.classList.toggle("active", b.dataset.view === AV.view)); };
+    const draw = () => { const p = root.querySelector("[data-conv-pane='agents']"); if (p) p.innerHTML = agentViewHtml(x); };
+    const k = t.dataset.agent, n = Number(t.dataset.turn);
+    if (k === "view") { AV.view = t.dataset.view; if (AV.view === "agents") draw(); apply(); }
+    else if (k === "run") { AV.view = "agents"; AV.open = new Set([n]); draw(); apply(); const el = root.querySelector("#run-" + n); if (el) el.scrollIntoView({ block: "start" }); }
+    else if (k === "toggle") { if (AV.open.has(n)) AV.open.delete(n); else AV.open.add(n); draw(); }
+    else if (k === "all") { AV.open = t.dataset.open === "1" ? new Set(runsOf(x).filter((e) => !e.agentRun.direct).map((e) => e.turnNumber)) : new Set(); draw(); }
+    else if (k === "back") { AV.view = "conv"; apply(); const el = root.querySelector("#turn-" + n); if (el) el.scrollIntoView({ block: "center" }); }
+    return true;
+  }
+  const builtIn = (x) => S.isBuiltIn(S.instance(x.instanceId));
   const actionsUsedChips = (x) => { const t = {}; (x.actionCalls || []).forEach((c) => { t[c.action] = (t[c.action] || 0) + 1; }); return Object.entries(t).map(([a, n]) => `<span class="chip chip-muted">${U.esc(a)} · ${n} ${U.plural(n, "call")}</span>`).join(" "); };
   const appsUsedChips = (x) => { const t = {}; (x.appCalls || []).forEach((c) => { t[c.app] = (t[c.app] || 0) + 1; }); return Object.entries(t).map(([a, n]) => `<span class="chip chip-muted">${U.esc(a)} · ${n} ${U.plural(n, "call")}</span>`).join(" "); };
   function findingTally(x) {
@@ -224,7 +271,7 @@
       ? `<span class="att-thumb-wrap"><img class="att-thumb" src="${U.esc(a.file)}" alt="${U.esc(a.name)}" title="Open the image" ${attData(a)}/><span class="small muted">${I.image} ${U.esc(a.name)} · ${a.sizeKB} KB</span></span>`
       : `<button type="button" class="att-chip" title="Preview the file" ${attData(a)}>${I.file} ${U.esc(a.name)} <span class="muted">· ${a.sizeKB} KB</span></button>`).join("")}</div>`;
   }
-  function daySep(d) {
+  function daySep(d, x) {
     const sync = nextDay(d), label = sync <= U.today() ? `collected by the daily sync of ${U.fmtDate(sync)}` : "collected today";
     return `<li class="turn-day"><span>${U.fmtDate(d)} · ${label}</span></li>`;
   }
@@ -242,7 +289,7 @@
     return `<li class="turn${tint}${extra.focusTurn === t.turnNumber ? " turn-focus" : ""}${mode && mode.kind === "context" ? " turn-context" : ""}" id="turn-${t.turnNumber}">
         <div class="turn-side">${m ? U.avatar(m, "sm") : ""}</div>
         <div class="turn-main">
-          <div class="turn-head"><span class="strong">${m ? U.esc(m.displayName) : "Person"}</span><span class="muted"> · ${U.fmtDateTime(t.promptTimestamp)}</span>${where}${ctxTag}${prev ? ` <span class="tag tag-info">Latest version</span> <button type="button" class="link-btn small" data-action="turn-prev" aria-expanded="false">Show the earlier version</button>` : ""}${(t.violationFlags || []).map(fnd).join(" ")}</div>
+          <div class="turn-head"><span class="strong">${m ? U.esc(m.displayName) : "Person"}</span><span class="muted"> · ${U.fmtDateTime(t.promptTimestamp)}</span>${where}${ctxTag}${prev ? ` <span class="tag tag-info">Latest version</span> <button type="button" class="link-btn small" data-action="turn-prev" aria-expanded="false">Show the earlier version</button>` : ""}${(t.violationFlags || []).map(fnd).join(" ")}${agentBtn(t)}</div>
           <div class="turn-body">${hl(t.userPrompt, q)}</div>
           ${prev ? `<div class="turn-prev" hidden><div class="turn-head"><span class="tag">Earlier version (edited)</span><span class="muted small">replaced ${U.fmtDateTime(prev.editedAt)}</span></div><div class="turn-body turn-body-prev">${hl(prev.previousPrompt, q)}</div></div>` : ""}
           ${attachmentsHtml(t.attachments)}
@@ -288,7 +335,7 @@
         if (i - pi > 1) items += gapHtml(turns, pi + 1, i - 1, total);
         else if (k === 0 && i === 0) items += edgeHtml("start", total);
       }
-      const d = dayOf(t.promptTimestamp); if (d !== lastDay) { items += daySep(d); lastDay = d; }
+      const d = dayOf(t.promptTimestamp); if (d !== lastDay) { items += daySep(d, x); lastDay = d; }
       items += turnHtml(t, x, m, s, q, filtering ? { kind: matchSet.has(t.turnNumber) ? "match" : "context", total } : null);
     });
     if (filtering && shown.length) { const li = index.get(shown[shown.length - 1].turnNumber); items += li < total - 1 ? gapHtml(turns, li + 1, total - 1, total) : edgeHtml("end", total); }
@@ -305,12 +352,14 @@
     return `<dl class="kv kv-wide kv-detail conv-details"${ui.details ? "" : " hidden"}>
         <dt>Person</dt><dd>${personLink(m)}${m && m.jobTitle ? `<div class="small muted">${U.esc(m.jobTitle)}</div>` : ""}</dd>
         <dt>Business group</dt><dd>${g ? `<a href="#/groups/${g.id}">${U.esc(g.name)}</a>` : '<span class="muted">None</span>'}${s && atTime && g && atTime !== g.id ? `<div class="small muted">The AI asset's group. ${who} was in ${U.esc(S.groupName(atTime))} at the time.</div>` : ""}</dd>
-        <dt>AI asset</dt><dd>${s ? `${s.type === "Custom" && s.registerEntryId ? `<a href="#/registry/${s.registerEntryId}">${U.esc(s.name)}</a>` : `<a href="#/systems/${s.id}">${U.esc(s.name)}</a>`} · ${U.esc(kindName(s))}${s.external ? " · built outside your workspace" : ""}${version ? `<div class="small muted">Instructions in force: version ${version.version} of ${U.fmtDate(version.date)}</div>` : ""}` : '<span class="muted">None: a direct chat</span>'}</dd>
+        <dt>AI asset</dt><dd>${s ? `${s.type === "Custom" && s.registerEntryId ? `<a href="#/registry/${s.registerEntryId}">${U.esc(s.name)}</a>` : `<a href="#/systems/${s.id}">${U.esc(s.name)}</a>`} · ${U.esc(kindName(s))}${s.external ? " · built outside your workspace" : ""}${version && !s.providedBy ? `<div class="small muted">Instructions in force: version ${version.version} of ${U.fmtDate(version.date)}</div>` : ""}` : '<span class="muted">None: a direct chat</span>'}</dd>
         <dt>AI system</dt><dd>${U.esc(plat.name || "")}${w ? ` · ${U.esc(w.name)} workspace` : ""}</dd>
         <dt>When</dt><dd>${days.length > 1 ? `${U.fmtDateTime(first)} to ${U.fmtDateTime(last)}<div class="small muted">Turns on ${days.length} days, collected by ${days.length} daily syncs.</div>` : `${U.fmtDateTime(x.timestamp || x.date)}${x.threadCreatedDate && x.threadCreatedDate !== x.date ? `<div class="small muted">Thread started ${U.fmtDate(x.threadCreatedDate)}</div>` : ""}`}</dd>
         <dt>Chat status</dt><dd>${st.label}${statusLine}</dd>
         <dt>Turns</dt><dd>${U.fmtNum(x.turnCount || 0)}${x.tokenCount ? ` · ${U.fmtNum(x.tokenCount)} tokens` : ""}</dd>
-        <dt>Models</dt><dd>${(x.models || []).length ? x.models.map((mm) => U.esc(mm)).join(", ") : '<span class="muted">Not recorded</span>'}</dd>
+        ${x.caseName ? `<dt>eDiscovery Case</dt><dd>${U.esc(x.caseName)}${x.caseId ? ` <span class="muted">· ${U.esc(x.caseId)}</span>` : ""}</dd>` : ""}
+        ${x.agentActivity && x.agentActivity.runs ? `<dt>Agent activity</dt><dd>${stepsWord(x.agentActivity.steps)} · ${U.fmtNum(x.agentActivity.agents)} ${U.plural(x.agentActivity.agents, "agent")}${alertTags(x.agentActivity)} · ${U.fmtNum(x.agentActivity.changes)} ${U.plural(x.agentActivity.changes, "change")} to data<div class="small muted">As reported by ${U.esc(plat.name || "the AI system")}. Open the Agent activity view to read it.</div></dd>` : ""}
+        ${builtIn(x) && !(x.models || []).length ? "" : `<dt>Models</dt><dd>${(x.models || []).length ? x.models.map((mm) => U.esc(mm)).join(", ") : '<span class="muted">Not recorded</span>'}</dd>`}
         <dt>Files shared</dt><dd>${(x.attachedFiles || []).length ? `<div class="att-list att-list-tight">${x.attachedFiles.map((a) => `<button type="button" class="att-chip" title="Preview the file" ${attData(a)}>${a.type === "image" ? I.image : I.file} ${U.esc(a.name)} <span class="muted">· ${a.sizeKB} KB · turn ${a.turnNumber}</span></button>`).join("")}</div>` : '<span class="muted">None</span>'}</dd>
         ${(x.appCalls || []).length ? `<dt>Apps used</dt><dd>${appsUsedChips(x)}</dd>` : ""}
         ${(x.actionCalls || []).length ? `<dt>Actions called</dt><dd>${actionsUsedChips(x)}</dd>` : ""}
@@ -328,9 +377,10 @@
     const pills = `<span class="pill ${st.pill}" title="${U.esc(st.title)}">${st.icon}<span>${st.label}</span></span>${fpills || `<span class="pill pill-ok">${I.checkCircle}<span>No findings</span></span>`}`;
     const who = m ? U.esc(m.displayName) : "An unknown person", days = U.uniq(turns.map((t) => dayOf(t.promptTimestamp)));
     const when = days.length > 1 ? `${U.fmtDate(days[0])} to ${U.fmtDate(days[days.length - 1])}, collected by ${days.length} daily syncs` : U.fmtDate(x.date);
-    const sentence = `${who} ${s ? `with ${U.esc(s.name)} (${U.esc(kindName(s))}${g ? `, ${U.esc(g.name)}` : ""})` : "in a direct chat"} in ${U.esc(plat.name || "")}${w ? `, ${U.esc(w.name)} workspace` : ""} · ${when} · ${U.fmtNum(x.turnCount || 0)} ${U.plural(x.turnCount || 0, "turn")}.`;
+    const sentence = `${who} ${s ? `with ${U.esc(s.name)} (${U.esc(kindName(s))}${g ? `, ${U.esc(g.name)}` : ""})` : "in a direct chat"} in ${U.esc(plat.name || "")}${w ? `, ${U.esc(w.name)} workspace` : ""}${x.caseName ? `, in the Case ${U.esc(x.caseName)}` : ""} · ${when} · ${U.fmtNum(x.turnCount || 0)} ${U.plural(x.turnCount || 0, "turn")}${x.agentActivity && x.agentActivity.runs ? ` · ${stepsWord(x.agentActivity.steps)} of agent activity` : ""}.`;
     const badge = s ? AGC.pages.registry.badge(kindName(s)) : `<span class="type-ic" title="Direct chat">${I.interactions}</span>`;
     const head = C.card(`<span class="conv-title">${badge}<span>${U.esc(x.chatName || "Interaction")}</span></span>`, `<p class="conv-sentence">${sentence}</p><button type="button" class="link-btn small" data-action="conv-details" aria-expanded="${ui.details}">${ui.details ? "Hide details" : "Show details"}</button>${detailsHtml(x, m, s, g, w, plat, turns)}`, { action: `<span class="conv-pills">${pills}</span>`, cls: "conv-head-card" });
+    if (AV.id !== x.interactionId) { AV.id = x.interactionId; AV.view = "conv"; AV.open = new Set(); }
     let body;
     if (!open) body = `<div class="notice notice-warn">${I.lock}<span>The content of this interaction is not available for your profile. Access to content comes from Archive360 Entitlement Policies; owning the business group does not grant it.</span></div>`;
     else if (!x.contentRetained) body = `<div class="notice notice-info">${I.info}<span>The content of this interaction was not retained; its metadata was. Nothing to show below.</span></div>`;
@@ -339,8 +389,10 @@
       if (!viewed.has(x.interactionId)) { viewed.add(x.interactionId); S.logAudit({ category: "Access", eventType: "Interaction content viewed", groupId: x.groupId || null, aiSystemId: x.aiSystemId || null, refType: "interaction", refId: x.interactionId, summary: "Viewed interaction content", entitlementScope: null }); }
       body = `<div class="conv-find" role="search"><label class="conv-find-label" for="convFind">Find in this interaction</label><input type="search" class="inp" id="convFind" placeholder="A word or phrase in the prompts and responses" value="${U.esc(ui.find)}"/><label class="small muted">From <input type="date" class="inp" id="convFrom" value="${ui.from}"/></label><label class="small muted">To <input type="date" class="inp" id="convTo" value="${ui.to}"/></label><button type="button" class="btn btn-sm" data-action="conv-clear"${ui.find || ui.from || ui.to ? "" : " disabled"}>Clear</button></div><div id="turnsWrap">${turnsHtml(x, m, s, turns)}</div>`;
     }
-    if (opts && opts.noHead) return C.card("Conversation", body, { cls: "conv-card", action: `<span class="conv-pills"><span class="pill ${st.pill}" title="${U.esc(st.title)}">${st.icon}<span>${st.label}</span></span></span>` });
-    return head + C.card("Conversation", body, { cls: "conv-card" });
+    const sw = open && x.contentRetained && turns.length ? viewSwitch(x) : "";
+    if (sw) body = `<div data-conv-pane="conv"${AV.view === "conv" ? "" : " hidden"}>${body}</div><div data-conv-pane="agents"${AV.view === "agents" ? "" : " hidden"}>${agentViewHtml(x)}</div>`;
+    if (opts && opts.noHead) return C.card("Conversation", body, { cls: "conv-card", action: `${sw}<span class="conv-pills"><span class="pill ${st.pill}" title="${U.esc(st.title)}">${st.icon}<span>${st.label}</span></span></span>` });
+    return head + C.card("Conversation", body, { cls: "conv-card", action: sw });
   };
   const emptyConv = (scope) => C.card("Interaction", C.emptyState("Choose an interaction", scope.memberId ? "Choose an interaction in the list on the left to read it here, every turn of it." : "Open a person in the list on the left and choose an interaction to read it here, every turn of it."));
 
@@ -438,6 +490,7 @@
   P.bindConversation = function (root, getX) {
     const drawTurns = () => { const x = getX(); const wrap = root.querySelector("#turnsWrap"); if (!x || !wrap) return; const conv = (D.conversations || {})[x.interactionId]; wrap.innerHTML = turnsHtml(x, S.member(x.memberId), assetOf(x), conv ? conv.turns || [] : []); const clr = root.querySelector("[data-action='conv-clear']"); if (clr) clr.disabled = !(ui.find || ui.from || ui.to); };
     root.addEventListener("click", (ev) => {
+      if (agentClick(ev, root, getX())) return;
       const t = ev.target.closest("[data-att], [data-action='conv-details'], [data-action='conv-clear'], [data-action='turn-prev'], [data-action='ctx-reveal'], [data-action='ctx-hide'], [data-action='ctx-hide-all']");
       if (!t) return;
       if (t.dataset.att) { ev.preventDefault(); preview({ file: t.dataset.att, name: t.dataset.name, type: t.dataset.type, sizeKB: t.dataset.size }); return; }
@@ -466,6 +519,7 @@
     const drawTurns = () => { const x = ui.selected ? P.get(ui.selected) : null; const wrap = root.querySelector("#turnsWrap"); if (!x || !wrap) return; const conv = (D.conversations || {})[x.interactionId]; wrap.innerHTML = turnsHtml(x, S.member(x.memberId), assetOf(x), conv ? conv.turns || [] : []); const clr = root.querySelector("[data-action='conv-clear']"); if (clr) clr.disabled = !(ui.find || ui.from || ui.to); };
     const keepCaret = (id, fn) => { const el = root.querySelector("#" + id), pos = el ? el.selectionStart : null; fn(); const el2 = root.querySelector("#" + id); if (el2 && el2 !== el) { el2.focus(); try { el2.setSelectionRange(pos, pos); } catch (e) { /* date inputs have no caret */ } } };
     root.addEventListener("click", (ev) => {
+      if (agentClick(ev, root, ui.selected ? P.get(ui.selected) : null)) return;
       const t = ev.target.closest("[data-tree], [data-qf], [data-att], [data-action]");
       if (!t) return;
       if (t.dataset.tree === "section") { const k = t.dataset.key; if (ui.collapsed.has(k)) ui.collapsed.delete(k); else ui.collapsed.add(k); drawTree(); return; }

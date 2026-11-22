@@ -11,7 +11,7 @@
     return `<span class="pill pill-muted">${I.pause}<span>Inactive</span></span><div class="small muted">${sub}</div>`;
   }
   function typeIcon(type) {
-    const map = { "ChatGPT Enterprise": "CG", "Claude Enterprise": "CL", "Microsoft 365 Copilot": "MS", "Custom AI application": "API" };
+    const map = { "ChatGPT Enterprise": "CG", "Claude Enterprise": "CL", "Microsoft 365 Copilot": "MS", "Archive360 AI": "A3", "Custom AI application": "API" };
     return `<span class="type-ic" title="${U.esc(type)}">${map[type] || "AI"}</span>`;
   }
   function archiveSummary(rc) {
@@ -22,7 +22,7 @@
     return `<div class="verify">
       <div class="verify-title">${I.checkCircle}<span>What Archive360 holds in <strong>${U.esc(rc.name)}</strong></span></div>
       <div class="summary-grid">${items.map(([l, v]) => `<div class="sg-item"><div class="sg-val">${v}</div><div class="sg-label">${U.esc(l)}</div></div>`).join("")}</div>
-      ${a.workspaces && a.workspaces.length ? `<div class="small verify-ws"><span class="kv-label">Workspaces discovered</span> ${a.workspaces.map((w) => `<span class="chip chip-muted">${U.esc(w)}</span>`).join(" ")}</div>` : `<div class="small muted verify-ws">This platform's metadata carries no workspaces.</div>`}
+      ${a.workspaces && a.workspaces.length ? `<div class="small verify-ws"><span class="kv-label">Workspaces discovered</span> ${a.workspaces.map((w) => `<span class="chip chip-muted">${U.esc(w)}</span>`).join(" ")}</div>` : (S.isBuiltIn(S.instance(rc.claimedByInstanceId)) ? "" : `<div class="small muted verify-ws">This platform's metadata carries no workspaces.</div>`)}
       ${a.items === 0 ? `<div class="notice notice-info">${I.info}<span>No items archived yet. The AI system can still be added; governance begins as items arrive.</span></div>` : ""}
     </div>`;
   }
@@ -74,7 +74,7 @@
       menu.push(item("delete", "retire", "Delete", { cls: "menu-danger", disabledReason: h.hasHistory ? "Has a governance record; deactivate instead." : null }));
     }
     return `<tr>
-      <td><div class="inst-name">${typeIcon(inst.platformType)}<div><span class="strong">${U.esc(inst.name)}</span><div class="small muted">${[inst.platformType !== inst.name ? U.esc(inst.platformType) : "", inst.externalIdentifier ? `<code>${U.esc(inst.externalIdentifier)}</code>` : ""].filter(Boolean).join(" · ")}</div></div></div></td>
+      <td><div class="inst-name">${typeIcon(inst.platformType)}<div><span class="strong">${U.esc(inst.name)}</span><div class="small muted">${[inst.platformType !== inst.name ? U.esc(inst.platformType) : "", inst.externalIdentifier ? `<code>${U.esc(inst.externalIdentifier)}</code>` : "", S.isBuiltIn(inst) ? "Built into Archive360" : ""].filter(Boolean).join(" · ")}</div></div></div></td>
       <td>${P.ownerCell(S.member(inst.ownerMemberId))}</td>
       <td class="small">${rc ? U.esc(rc.name) : (inst.notArchived ? '<span class="warn-text">None · not archived</span>' : '<span class="danger-text">Unmapped</span>')}</td>
       <td>${statusCell(inst)}</td>
@@ -112,13 +112,13 @@
     const added = S.member(inst.addedByMemberId);
     C.modal({ title: U.esc(inst.name), size: "modal-lg", body: `
       <dl class="kv kv-wide">
-        <dt>Type</dt><dd>${U.esc(inst.platformType)}</dd>
-        <dt>Accountable owner</dt><dd>${P.ownerCell(S.member(inst.ownerMemberId))}<div class="small muted">${inst.platformType === "Custom AI application" ? "Answers for this AI system" : "Owns the vendor relationship"}; reconfirms the approval when it comes due. Ownership never grants content access.</div></dd>
+        <dt>Type</dt><dd>${U.esc(inst.platformType)}${S.isBuiltIn(inst) ? `<div class="small muted">${S.BUILT_IN_LINE}</div>` : ""}</dd>
+        <dt>Accountable owner</dt><dd>${P.ownerCell(S.member(inst.ownerMemberId))}<div class="small muted">${inst.platformType === "Custom AI application" || S.isBuiltIn(inst) ? "Answers for this AI system" : "Owns the vendor relationship"}; reconfirms the approval when it comes due. Ownership never grants content access.</div></dd>
         <dt>Approved purpose</dt><dd>${U.esc(inst.approvedPurpose || "")}</dd>
         <dt>Approval</dt><dd>${approvalCell(inst)}${e ? `<div class="small muted">Registered ${U.fmtDate(e.registeredDate)}${e.approvedDate ? ` · approved ${U.fmtDate(e.approvedDate)} by ${U.esc(S.member(e.approvedByMemberId) ? S.member(e.approvedByMemberId).displayName : "")}` : ""}${e.lastReconfirmedDate ? ` · last reconfirmed ${U.fmtDate(e.lastReconfirmedDate)}` : ""}. Decided on the AI Registry.</div>` : ""}</dd>
         <dt>Record class</dt><dd>${rc ? U.esc(rc.name) : (inst.notArchived ? '<span class="warn-text">None · not archived</span>' : "Unmapped")}${rc && rc.description ? `<div class="small muted">${U.esc(rc.description)}</div>` : ""}${!rc && inst.notArchived ? `<div class="small muted">${notArchivedLine(inst)} Edit the AI system to associate a record class if its interactions are to be archived.</div>` : ""}</dd>${(inst.apiAccess || []).length ? `<dt>API access</dt><dd>${inst.apiAccess.map((k) => `<div><code>${U.esc(k.redacted || "")}</code> ${U.esc(k.name)} · ${U.esc(k.provider || "")} · ${U.esc(k.projectName || "")}<div class="small muted">last used ${U.fmtDate(k.lastUsed)} · ${U.fmtNum(k.requests30d || 0)} requests in 30 days · claimed ${U.fmtDate(k.claimedDate)}</div></div>`).join("")}</dd>` : ""}
         <dt>Status</dt><dd>${statusCell(inst)}${inst.deactivation ? `<div class="small muted">Reason: ${U.esc(inst.deactivation.reason)}</div>` : ""}</dd>
-        <dt>Environment identifier</dt><dd>${inst.externalIdentifier ? `<code>${U.esc(inst.externalIdentifier)}</code>` : (inst.recordClassId ? '<span class="muted">Read from the archive when items arrive</span>' : '<span class="muted">None: nothing is archived for it</span>')}</dd>
+        <dt>Environment identifier</dt><dd>${inst.externalIdentifier ? `<code>${U.esc(inst.externalIdentifier)}</code>` : (S.isBuiltIn(inst) ? '<span class="muted">None: it is built into Archive360</span>' : inst.recordClassId ? '<span class="muted">Read from the archive when items arrive</span>' : '<span class="muted">None: nothing is archived for it</span>')}</dd>
         <dt>Added</dt><dd>${U.fmtDate(inst.addedDate)}${added ? ` by ${U.esc(added.displayName)}` : ""}</dd>
       </dl>
       ${archiveSummary(rc)}
@@ -153,7 +153,7 @@
       return `<label class="rc-item${claimedByOther ? " rc-claimed" : ""}${st.recordClassId === rc.id ? " selected" : ""}"><input type="radio" name="rc" value="${rc.id}" ${st.recordClassId === rc.id ? "checked" : ""} ${claimedByOther || locked ? "disabled" : ""}/><span class="rc-body"><span class="strong">${U.esc(rc.name)}</span><span class="small muted">${U.esc(rc.description || "")}</span><span class="small">${U.fmtNum(a.items)} items archived${a.lastItem ? ` · latest ${U.fmtDate(a.lastItem)}` : ""}${claimedByOther ? ` · <span class="danger-text">claimed by ${U.esc(claim.name)}</span>` : ""}</span></span></label>`;
     }).join("");
     const body = () => {
-      if (st.step === 1) return `${stepsHtml()}<div class="form-grid">${C.field("AI system name", `<input class="inp" name="name" value="${U.esc(st.name)}" placeholder="For example ChatGPT Enterprise, an acquired company's environment, or a custom application"/>`, "Unique across AI systems.")}${C.field("Type", C.select("platformType", D.platformTypes.map((t) => ({ value: t, label: t })), st.platformType, typeLocked ? "disabled" : ""), typeLocked ? "Locked: this AI system has a governance record." : "An AI platform the collection module can collect, or a custom AI application.")}</div>${C.field("Accountable owner", C.memberPicker("instOwner", { value: st.ownerMemberId }), pf.ownerHelp || "Required. Answers for this AI system, owns any vendor relationship, and reconfirms the approval when it comes due. Ownership never grants content access.")}${C.field("Approved purpose", `<textarea class="inp" name="approvedPurpose" rows="2" placeholder="Required. What this AI system is sanctioned for, for example: enterprise AI assistant for all business groups under the AI acceptable use policy.">${U.esc(st.approvedPurpose)}</textarea>`, "Shown to the approver and on the AI Registry.")}`;
+      if (st.step === 1) return `${stepsHtml()}<div class="form-grid">${C.field("AI system name", `<input class="inp" name="name" value="${U.esc(st.name)}" placeholder="For example ChatGPT Enterprise, an acquired company's environment, or a custom application"/>`, "Unique across AI systems.")}${C.field("Type", C.select("platformType", D.platformTypes.map((t) => { const taken = t === S.BUILT_IN_TYPE && S.builtInTaken(existing ? existing.id : null); return { value: t, label: taken ? `${t} (already added)` : t, disabled: taken }; }), st.platformType, typeLocked ? "disabled" : ""), typeLocked ? "Locked: this AI system has a governance record." : `An AI platform the collection module can collect, Archive360 AI, which is built into Archive360 and archives its own prompts and responses, or a custom AI application.${S.builtInTaken(existing ? existing.id : null) ? " Archive360 AI is already added as an AI system, and there is only one." : ""}`)}</div>${C.field("Accountable owner", C.memberPicker("instOwner", { value: st.ownerMemberId }), pf.ownerHelp || "Required. Answers for this AI system, owns any vendor relationship, and reconfirms the approval when it comes due. Ownership never grants content access.")}${C.field("Approved purpose", `<textarea class="inp" name="approvedPurpose" rows="2" placeholder="Required. What this AI system is sanctioned for, for example: enterprise AI assistant for all business groups under the AI acceptable use policy.">${U.esc(st.approvedPurpose)}</textarea>`, "Shown to the approver and on the AI Registry.")}`;
       if (st.step === 2) {
         /* "Not archived" is offered when adding, and when editing an AI system that has no record class; once a record class is associated it
            cannot be dropped here. The reason is required (Gabriel, 2026-10-01): the decision narrows governance, as Exclude from governance does. */

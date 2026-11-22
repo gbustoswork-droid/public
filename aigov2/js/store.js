@@ -43,7 +43,10 @@
   S.findingsBySystem = U.groupBy(D.findings.filter((f) => f.aiSystemId), "aiSystemId");
   S.escalationsByGroup = U.groupBy(D.escalations, "groupId");
   S.entriesByGroup = U.groupBy(D.registerEntries.filter((e) => e.groupId), "groupId");
-  S.entryBySystem = index(D.registerEntries.filter((e) => ["GPT", "Project", "Plugin", "Custom AI system"].includes(e.level)), "refId");
+  /* The kinds of AI asset, in one place (2026-11-22): a GPT, a Project and a Plugin are created by the customer's people inside ChatGPT
+     Enterprise; an AI assistant is provided by Archive360 with Archive360 AI, so it has no creator and no configuration a customer wrote. */
+  S.ASSET_KINDS = ["GPT", "Project", "Plugin", "AI assistant"];
+  S.entryBySystem = index(D.registerEntries.filter((e) => S.ASSET_KINDS.concat("Custom AI system").includes(e.level)), "refId");
   S.auditByGroup = U.groupBy(D.auditEvents.filter((e) => e.groupId), "groupId");
 
   /* ---------- Persona and permissions ---------- */
@@ -142,6 +145,14 @@
   /* The module governs everything Archive360 archives for the customer; there is no platform scope (Gabriel, 2026-09-11).
      Where an AI asset or an interaction came from is shown on its row as origin metadata and filtered locally on the pages that list it. */
   S.inScope = () => true;
+  /* Archive360 AI (Gabriel, 2026-11-20): the AI built into the Archive360 platform is an AI system of its own type. It holds AI assets as a
+     vendor's platform does, there is only one, and nothing is connected: Archive360 archives its own prompts and responses. The screens
+     never call it an "AI platform", because "platform" would then mean two things on one line. */
+  S.BUILT_IN_TYPE = "Archive360 AI";
+  S.BUILT_IN_LINE = "Built into Archive360: Archive360 archives its own prompts and responses.";
+  S.isBuiltIn = (inst) => !!inst && inst.platformType === S.BUILT_IN_TYPE;
+  S.builtInTaken = (exceptId) => (D.instances || []).some((i) => S.isBuiltIn(i) && i.id !== exceptId);
+  S.collectionOf = (type) => (type === "Custom AI application" ? "Ingestion API" : type === S.BUILT_IN_TYPE ? "Built in" : "Connector");
   /* The order the Instances page shows: platform type order, then name. The Registry's platform filter uses the same order. */
   S.instancesOrdered = function () {
     const order = D.platformTypes || [];
@@ -272,7 +283,7 @@
     const findings = D.findings.filter((f) => S.inScope(f) && S.inRange(f.detectedAt));
     return {
       groups: groups.length, groupsApproved: groups.filter((g) => S.entry(g.registerEntryId).status === "Approved").length,
-      entries: ents.length, systemsRegistered: ents.filter((e) => ["GPT", "Project", "Plugin", "Custom AI system"].includes(e.level)).length,
+      entries: ents.length, systemsRegistered: ents.filter((e) => S.ASSET_KINDS.concat("Custom AI system").includes(e.level)).length,
       systemsTotal: D.aiSystems.filter((s) => S.inScope(s) && s.status === "Active").length,
       awaiting: findings.filter((f) => f.status === "Detected").length,
       confirmed90: findings.filter((f) => f.status === "Confirmed" && U.daysAgo(f.detectedAt) <= 90).length,
@@ -496,7 +507,7 @@
   };
   S.riskForEntry = function (entryId) {
     const e = S.entry(entryId); if (!e) return null;
-    if (["GPT", "Project", "Plugin"].includes(e.level)) return S.riskForAsset(e.refId);
+    if (S.ASSET_KINDS.includes(e.level)) return S.riskForAsset(e.refId);
     const inst = S.entryInstance(e), sys = e.level === "Custom AI system" ? S.system(e.refId) : null;
     return riskWithTrend({ asset: sys, entry: e, inst });
   };
@@ -525,7 +536,7 @@
   S.riskScoreboard = function (staged) {
     const run = () => {
       const rows = [], row = (kind, id, name, type, groupId, href, r) => rows.push({ kind, id, name, type, groupId: groupId || null, href, score: r.score, band: r.band, cls: r.cls });
-      S.registryEntries().filter((e) => !["GPT", "Project", "Plugin"].includes(e.level)).forEach((e) => { const r = S.riskForEntry(e.id); if (r) row("system", e.id, e.name, e.level === "Custom AI system" ? "Custom AI application" : "AI platform", e.groupId, `#/registry/${e.id}`, r); });
+      S.registryEntries().filter((e) => !S.ASSET_KINDS.includes(e.level)).forEach((e) => { const r = S.riskForEntry(e.id); if (r) row("system", e.id, e.name, e.level === "Custom AI system" ? "Custom AI application" : "AI platform", e.groupId, `#/registry/${e.id}`, r); });
       D.aiSystems.filter((x) => x.type !== "Custom").forEach((x) => { const r = S.riskForAsset(x.id); if (r) row("asset", x.id, x.name, x.type, x.groupId, `#/systems/${x.id}`, r); });
       S.activeGroups().forEach((g) => { const r = S.riskForGroup(g.id); row("group", g.id, g.name, "Business group", g.id, `#/groups/${g.id}`, r); });
       return rows;
@@ -836,7 +847,7 @@
   };
 
   /* ---------- AI Registry ---------- */
-  S.registryLevels = ["Platform", "Custom AI system", "GPT", "Project", "Plugin"];
+  S.registryLevels = ["Platform", "Custom AI system"].concat(S.ASSET_KINDS);
   S.registryEntries = () => D.registerEntries.filter((e) => S.registryLevels.includes(e.level));
   /* What a group's AI assets sub-page lists on its All tile (Gabriel, 2026-09-29: the Groups card's KPI must count the same): the custom AI
      applications the group owns, and every GPT and Project discovered in the group, the outside GPTs its people use included. */
@@ -856,7 +867,7 @@
     if (sys.external) return { key: "external", label: "Built outside your workspace · nobody has allowed or prohibited it yet", entry: null };
     if (sys.registrationCoverage === "none") return { key: "none", label: "No platform approval covers it", entry: null };
     const inst = sys.instanceId ? S.instance(sys.instanceId) : null, pe = inst ? S.instanceEntry(inst) : null;
-    if (pe && pe.status === "Approved") return { key: "platform", label: `Created within ${inst.name}`, entry: pe };
+    if (pe && pe.status === "Approved") return { key: "platform", label: `${sys.providedBy ? "Provided with" : "Created within"} ${inst.name}`, entry: pe };
     if (pe) return { key: "platformPending", label: pe.status === "Pending" ? `${inst.name} is not approved yet` : `${inst.name} is ${pe.status.toLowerCase()}`, entry: pe };
     return { key: "none", label: "No platform approval covers it", entry: null };
   };
@@ -869,7 +880,7 @@
     while (S.byId.entry[id]) id += "_2";
     /* The cadence follows the risk level of the asset at registration (Gabriel, 2026-10-21): six months for High and Critical, twelve otherwise. */
     const r0 = S.riskForAsset(sys.id), band0 = r0 ? r0.band : "Low", months = S.cadenceForBand(band0);
-    const e = { id, level: sys.type === "Project" || sys.type === "Plugin" ? sys.type : "GPT", refId: sys.id, name: sys.name, groupId: sys.groupId, platformId: sys.platformId, ownerMemberId: spec.ownerMemberId, cadenceBand: band0, cadenceSetOn: U.today(), cadenceScoringVersion: S.riskScoring().version,
+    const e = { id, level: S.ASSET_KINDS.includes(sys.type) ? sys.type : "GPT", refId: sys.id, name: sys.name, groupId: sys.groupId, platformId: sys.platformId, ownerMemberId: spec.ownerMemberId, cadenceBand: band0, cadenceSetOn: U.today(), cadenceScoringVersion: S.riskScoring().version,
       approvedPurpose: spec.approvedPurpose, permittedDataClasses: spec.permittedDataClasses || [], status: "Approved", registeredDate: U.today(), registeredByMemberId: p.memberId,
       approvedDate: U.today(), approvedByMemberId: p.memberId, lastReconfirmedDate: null, reconfirmationDueDate: S.addMonths(U.today(), months), reconfirmationIntervalMonths: months,
       externalIdentifier: sys.externalIdentifier || null, collectionMethod: "Connector", decisionHistory: [], blockers: [], notes: null };
@@ -1465,7 +1476,7 @@
        who made it and when, and Edit can associate a record class later. The identifier used to be set twice here, the second time to null, so
        an AI system added from an unclaimed API key lost it; fixed the same day. */
     const notArchived = spec.recordClassId ? null : { reason: spec.notArchivedReason || "", byMemberId: p.memberId, date: U.today() };
-    const inst = { id, name: spec.name, platformType: spec.platformType, platformId: D.platformIdOfType[spec.platformType], recordClassId: spec.recordClassId || null, collection: spec.recordClassId ? (spec.platformType === "Custom AI application" ? "Ingestion API" : "Connector") : "Not archived", notArchived, externalIdentifier: spec.externalIdentifier || null, apiAccess: spec.apiAccess ? [Object.assign({ claimedDate: U.today() }, spec.apiAccess)] : [],
+    const inst = { id, name: spec.name, platformType: spec.platformType, platformId: D.platformIdOfType[spec.platformType], recordClassId: spec.recordClassId || null, collection: spec.recordClassId ? S.collectionOf(spec.platformType) : "Not archived", notArchived, externalIdentifier: spec.externalIdentifier || null, apiAccess: spec.apiAccess ? [Object.assign({ claimedDate: U.today() }, spec.apiAccess)] : [],
       status: spec.activate ? "Active" : "Inactive", ownerMemberId: spec.ownerMemberId, approvedPurpose: spec.approvedPurpose || "", registerEntryId: "re_" + id.slice(5), reconfirmationIntervalMonths: spec.reconfirmationIntervalMonths || D.settings.reconfirmation.intervalMonths, addedDate: U.today(), addedByMemberId: p.memberId,
       activatedDate: spec.activate ? U.today() : null, deactivation: null,
       workspaces: (rc && rc.archive ? rc.archive.workspaces : []).map((w, i) => ({ id: id + "_ws" + i, name: w })),
@@ -1480,7 +1491,7 @@
     const e = { id: inst.registerEntryId, level: spec.platformType === "Custom AI application" ? "Custom AI system" : "Platform", refId: id, name: spec.name, groupId: null, platformId: inst.platformId,
       ownerMemberId: spec.ownerMemberId, approvedPurpose: spec.approvedPurpose || "", permittedDataClasses: [], status: "Pending", registeredDate: U.today(), registeredByMemberId: p.memberId,
       approvedDate: null, approvedByMemberId: null, lastReconfirmedDate: null, reconfirmationDueDate: null, reconfirmationIntervalMonths: spec.reconfirmationIntervalMonths || D.settings.reconfirmation.intervalMonths, externalIdentifier: null,
-      collectionMethod: spec.recordClassId ? (spec.platformType === "Custom AI application" ? "Ingestion API" : "Connector") : "None",
+      collectionMethod: spec.recordClassId ? S.collectionOf(spec.platformType) : "None",
       decisionHistory: [{ date: U.today(), actorMemberId: p.memberId, action: "Registered", detail: "Registered when the AI system was added; awaiting approval.", refType: "instance", refId: id }], blockers: [], notes: null };
     if (spec.externalIdentifier) e.externalIdentifier = spec.externalIdentifier;
     D.registerEntries.push(e); S.byId.entry[e.id] = e;
@@ -1514,7 +1525,7 @@
            the owner and the purpose, not the collection path; the change is a history line on the AI system and on its registration, and an audit event. */
         const na = inst.notArchived;
         inst.notArchived = null;
-        inst.collection = inst.platformType === "Custom AI application" ? "Ingestion API" : "Connector";
+        inst.collection = S.collectionOf(inst.platformType);
         inst.history.push({ date: U.today(), actorMemberId: p.memberId, action: "Record class associated", detail: `${nw.name} associated: its interactions are archived, classified and reviewed from now on.${na && na.reason ? ` It had been registered without archiving: ${na.reason}` : ""}` });
         if (e) { e.collectionMethod = inst.collection; e.decisionHistory.push({ date: U.today(), actorMemberId: p.memberId, action: "Record class associated", detail: `Archive360 now archives its interactions in ${nw.name}; the approval stands.`, refType: "instance", refId: id }); }
         S.logAudit({ category: "Configuration", eventType: "Record class associated", refType: "instance", refId: id, summary: `Associated record class ${nw.name} with ${inst.name}, registered without archiving until now; its interactions are archived and reviewed from now on` });
